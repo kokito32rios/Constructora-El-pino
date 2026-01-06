@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Constructora El Pino - Tu hogar ideal te espera</title>
+    <link rel="stylesheet" href="/public/css/index.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- HEADER / NAVBAR -->
+    <header class="header">
+      <nav class="navbar">
+        <div class="container">
+          <div class="nav-wrapper">
+            <div class="logo">
+              <img
+                src="/public/images/logo.png"
+                alt="Constructora El Pino"
+                class="logo-img"
+              />
+              <div class="logo-text">
+                <span class="logo-title">CONSTRUCTORA</span>
+                <span class="logo-subtitle">EL PINO</span>
+              </div>
+            </div>
+
+            <button class="menu-toggle" id="menuToggle">
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+
+            <ul class="nav-menu" id="navMenu">
+              <li><a href="#inicio" class="nav-link active">Inicio</a></li>
+              <li><a href="#propiedades" class="nav-link">Propiedades</a></li>
+              <li><a href="#servicios" class="nav-link">Servicios</a></li>
+              <li><a href="#nosotros" class="nav-link">Nosotros</a></li>
+              <li><a href="#contacto" class="nav-link">Contacto</a></li>
+              <li>
+                <a href="/views/login.html" class="btn-login">Iniciar Sesión</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <!-- HERO SECTION -->
+    <section class="hero" id="inicio">
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <div class="container">
+          <div class="hero-text">
+            <h1 class="hero-title">
+              <span class="hero-subtitle">Encuentra</span>
+              Tu Hogar Perfecto
+            </h1>
+            <p class="hero-description">
+              Más de 20 años construyendo sueños en Antioquia. Descubre
+              propiedades exclusivas que se adaptan a tu estilo de vida.
+            </p>
+            <div class="hero-cta">
+              <a href="#propiedades" class="btn btn-primary">Ver Propiedades</a>
+              <a href="#contacto" class="btn btn-secondary">Contáctanos</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scroll Indicator -->
+      <div class="scroll-indicator">
+        <div class="mouse"></div>
+        <span>Desliza para explorar</span>
+      </div>
+    </section>
+
+    <!-- SEARCH BAR -->
+    <section class="search-section">
+      <div class="container">
+        <div class="search-card">
+          <h3 class="search-title">Busca tu propiedad ideal</h3>
+          <form class="search-form" id="searchForm">
+            <div class="search-grid">
+              <div class="form-group">
+                <label>
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
+                    ></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                  Ciudad
+                </label>
+                <select name="ciudad" id="searchCiudad">
+                  <option value="">Todas las ciudades</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <rect
+                      x="3"
+                      y="3"
+                      width="18"
+                      height="18"
+                      rx="2"
+                      ry="2"
+                    ></rect>
+                    <line x1="9" y1="3" x2="9" y2="21"></line>
+                  </svg>
+                  Tipo de Inmueble
+                </label>
+                <select name="tipo" id="searchTipo">
+                  <option value="">Todos los tipos</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                    ></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                  </svg>
+                  Transacción
+                </label>
+                <select name="transaccion" id="searchTransaccion">
+                  <option value="">Venta y Arriendo</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path
+                      d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+                    ></path>
+                  </svg>
+                  Precio Máximo
+                </label>
+                <select name="precio" id="searchPrecio">
+                  <option value="">Sin límite</option>
+                  <option value="100000000">Hasta $100M</option>
+                  <option value="200000000">Hasta $200M</option>
+                  <option value="300000000">Hasta $300M</option>
+                  <option value="500000000">Hasta $500M</option>
+                  <option value="1000000000">Hasta $1.000M</option>
+                </select>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-search">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
+              Buscar Propiedades
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURED PROPERTIES -->
+    <section class="properties-section" id="propiedades">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-label">Propiedades Destacadas</span>
+          <h2 class="section-title">Descubre Nuestras Mejores Opciones</h2>
+          <p class="section-description">
+            Inmuebles seleccionados cuidadosamente para ti
+          </p>
+        </div>
+
+        <div class="properties-grid" id="propertiesGrid">
+          <!-- Las propiedades se cargarán dinámicamente -->
+          <div class="property-card-skeleton"></div>
+          <div class="property-card-skeleton"></div>
+          <div class="property-card-skeleton"></div>
+        </div>
+
+        <div class="properties-cta">
+          <a href="/views/catalogo.html" class="btn btn-outline"
+            >Ver Todas las Propiedades</a
+          >
+        </div>
+      </div>
+    </section>
+
+    <!-- SERVICES -->
+    <section class="services-section" id="servicios">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-label">Nuestros Servicios</span>
+          <h2 class="section-title">Te Acompañamos en Todo el Proceso</h2>
+        </div>
+
+        <div class="services-grid">
+          <div class="service-card">
+            <div class="service-icon">
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              </svg>
+            </div>
+            <h3>Venta de Inmuebles</h3>
+            <p>
+              Asesoría completa en la compra de tu propiedad ideal con las
+              mejores condiciones del mercado.
+            </p>
+          </div>
+
+          <div class="service-card">
+            <div class="service-icon">
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+            </div>
+            <h3>Arriendo</h3>
+            <p>
+              Encuentra el lugar perfecto para vivir con opciones flexibles que
+              se adaptan a tu presupuesto.
+            </p>
+          </div>
+
+          <div class="service-card">
+            <div class="service-icon">
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+              </svg>
+            </div>
+            <h3>Construcción</h3>
+            <p>
+              Hacemos realidad tus proyectos arquitectónicos con calidad y
+              experiencia de más de 20 años.
+            </p>
+          </div>
+
+          <div class="service-card">
+            <div class="service-icon">
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                ></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+            </div>
+            <h3>Asesoría Jurídica</h3>
+            <p>
+              Acompañamiento legal en todos los trámites para garantizar
+              transacciones seguras y transparentes.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT US -->
+    <section class="about-section" id="nosotros">
+      <div class="container">
+        <div class="about-grid">
+          <div class="about-image">
+            <div class="about-image-wrapper">
+              <img src="/public/images/about.jpg" alt="Constructora El Pino" />
+              <div class="about-badge">
+                <span class="badge-number">20+</span>
+                <span class="badge-text">Años de Experiencia</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="about-content">
+            <span class="section-label">Sobre Nosotros</span>
+            <h2 class="section-title">Construyendo Sueños Desde 2005</h2>
+            <p class="about-text">
+              En <strong>Constructora El Pino</strong> nos especializamos en
+              hacer realidad el sueño de tener hogar propio. Con más de dos
+              décadas de experiencia en el mercado inmobiliario de Antioquia,
+              nos hemos consolidado como una empresa confiable, transparente y
+              comprometida con la calidad.
+            </p>
+            <p class="about-text">
+              Nuestro equipo de profesionales te acompaña en cada paso del
+              proceso, desde la búsqueda hasta la entrega de llaves,
+              garantizando tu satisfacción y tranquilidad.
+            </p>
+
+            <div class="about-stats">
+              <div class="stat-item">
+                <span class="stat-number">500+</span>
+                <span class="stat-label">Familias Felices</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-number">1,200+</span>
+                <span class="stat-label">Propiedades Vendidas</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-number">125</span>
+                <span class="stat-label">Municipios de Antioquia</span>
+              </div>
+            </div>
+
+            <a href="#contacto" class="btn btn-primary">Conoce Más</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section class="contact-section" id="contacto">
+      <div class="container">
+        <div class="contact-grid">
+          <div class="contact-info">
+            <span class="section-label">Contáctanos</span>
+            <h2 class="section-title">¿Listo para encontrar tu hogar?</h2>
+            <p class="contact-description">
+              Estamos aquí para ayudarte. Contáctanos y un asesor especializado
+              te guiará en todo el proceso.
+            </p>
+
+            <div class="contact-items">
+              <div class="contact-item">
+                <div class="contact-icon">
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                    ></path>
+                  </svg>
+                </div>
+                <div>
+                  <h4>Teléfono</h4>
+                  <p>+57 (604) 123 4567</p>
+                  <p>+57 321 456 7890</p>
+                </div>
+              </div>
+
+              <div class="contact-item">
+                <div class="contact-icon">
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                    ></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                  </svg>
+                </div>
+                <div>
+                  <h4>Email</h4>
+                  <p>info@constructoraelpino.com</p>
+                  <p>ventas@constructoraelpino.com</p>
+                </div>
+              </div>
+
+              <div class="contact-item">
+                <div class="contact-icon">
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
+                    ></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                </div>
+                <div>
+                  <h4>Oficina Principal</h4>
+                  <p>Calle 123 #45-67</p>
+                  <p>Medellín, Antioquia</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="contact-form-wrapper">
+            <form class="contact-form" id="contactForm">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="nombre">Nombre completo</label>
+                  <input type="text" id="nombre" name="nombre" required />
+                </div>
+
+                <div class="form-group">
+                  <label for="telefono">Teléfono</label>
+                  <input type="tel" id="telefono" name="telefono" required />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="email">Correo electrónico</label>
+                <input type="email" id="email" name="email" required />
+              </div>
+
+              <div class="form-group">
+                <label for="mensaje">Mensaje</label>
+                <textarea
+                  id="mensaje"
+                  name="mensaje"
+                  rows="5"
+                  required
+                ></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-full">
+                Enviar Mensaje
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-col">
+            <div class="footer-logo">
+              <img
+                src="/public/images/logo.png"
+                alt="Constructora El Pino"
+                class="footer-logo-img"
+              />
+              <div class="footer-logo-text">
+                <span class="footer-logo-title">CONSTRUCTORA</span>
+                <span class="footer-logo-subtitle">EL PINO</span>
+              </div>
+            </div>
+            <p class="footer-description">
+              Más de 20 años construyendo sueños y hogares en Antioquia. Tu
+              confianza es nuestra mejor inversión.
+            </p>
+            <div class="social-links">
+              <a href="#" aria-label="Facebook">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"
+                  ></path>
+                </svg>
+              </a>
+              <a href="#" aria-label="Instagram">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                  <path
+                    d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"
+                  ></path>
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+              </a>
+              <a href="#" aria-label="WhatsApp">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"
+                  ></path>
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <div class="footer-col">
+            <h4 class="footer-title">Enlaces Rápidos</h4>
+            <ul class="footer-links">
+              <li><a href="#inicio">Inicio</a></li>
+              <li><a href="#propiedades">Propiedades</a></li>
+              <li><a href="#servicios">Servicios</a></li>
+              <li><a href="#nosotros">Nosotros</a></li>
+              <li><a href="#contacto">Contacto</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-col">
+            <h4 class="footer-title">Propiedades</h4>
+            <ul class="footer-links">
+              <li><a href="/views/catalogo.html?tipo=casa">Casas</a></li>
+              <li>
+                <a href="/views/catalogo.html?tipo=apartamento">Apartamentos</a>
+              </li>
+              <li>
+                <a href="/views/catalogo.html?tipo=local"
+                  >Locales Comerciales</a
+                >
+              </li>
+              <li><a href="/views/catalogo.html?tipo=terreno">Terrenos</a></li>
+              <li><a href="/views/catalogo.html">Ver Todo</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-col">
+            <h4 class="footer-title">Horarios</h4>
+            <ul class="footer-info">
+              <li>
+                <strong>Lunes - Viernes:</strong>
+                <span>8:00 AM - 6:00 PM</span>
+              </li>
+              <li>
+                <strong>Sábados:</strong>
+                <span>9:00 AM - 2:00 PM</span>
+              </li>
+              <li>
+                <strong>Domingos:</strong>
+                <span>Cerrado</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <p>
+            &copy; 2025 Constructora El Pino. Todos los derechos reservados.
+          </p>
+          <div class="footer-legal">
+            <a href="#">Política de Privacidad</a>
+            <a href="#">Términos y Condiciones</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script src="/public/js/index.js"></script>
+  </body>
+</html>
