@@ -15,6 +15,8 @@ exports.login = async (req, res) => {
     try {
         // Validar errores
         const errors = validationResult(req);
+        console.log('BODY RECIBIDO:', req.body);
+        console.log('VALIDATION ERRORS:', errors.array());
         if (!errors.isEmpty()) {
             return res.status(400).json({
                 success: false,
@@ -37,7 +39,7 @@ exports.login = async (req, res) => {
         if (usuarios.length === 0) {
             return res.status(401).json({
                 success: false,
-                message: 'Cédula o contraseña incorrectos'
+                message: 'Usuario no existe'
             });
         }
 
@@ -57,7 +59,7 @@ exports.login = async (req, res) => {
         if (!passwordValida) {
             return res.status(401).json({
                 success: false,
-                message: 'Cédula o contraseña incorrectos'
+                message: 'Contraseña incorrecta'
             });
         }
 
@@ -230,20 +232,34 @@ exports.verifyToken = async (req, res) => {
             [decoded.cedula]
         );
 
+        // 👉 CASO 1: CÉDULA NO EXISTE
         if (usuarios.length === 0) {
-            return res.status(401).json({
+            return res.status(404).json({
                 success: false,
-                message: 'Usuario no encontrado'
+                errorCode: 'USER_NOT_FOUND',
+                message: 'Usuario no existe'
             });
         }
+        const usuario = usuarios[0];
 
-        if (!usuarios[0].activo) {
+        // 👉 CASO 2: USUARIO DESACTIVADO
+        if (!usuario.activo) {
             return res.status(403).json({
                 success: false,
-                message: 'Usuario desactivado'
+                errorCode: 'USER_INACTIVE',
+                message: 'Usuario desactivado. Contacta al administrador.'
             });
         }
+        // 👉 CASO 3: CONTRASEÑA INCORRECTA
+        const passwordValida = await bcrypt.compare(password, usuario.password);
 
+        if (!passwordValida) {
+            return res.status(401).json({
+                success: false,
+                errorCode: 'INVALID_PASSWORD',
+                message: 'Contraseña incorrecta'
+            });
+        }
         res.json({
             success: true,
             message: 'Token válido',
@@ -298,7 +314,8 @@ exports.changePassword = async (req, res) => {
         if (usuarios.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Usuario no encontrado'
+                errorCode: 'USER_NOT_FOUND',
+                message: 'Usuario no encontrado. Contacta al administrador.'
             });
         }
 
@@ -307,11 +324,11 @@ exports.changePassword = async (req, res) => {
 
         if (!passwordValida) {
             return res.status(401).json({
-                success: false,
-                message: 'Contraseña actual incorrecta'
+            success: false,
+                errorCode: 'INVALID_PASSWORD',
+                message: 'Contraseña incorrecta'
             });
         }
-
         // Hashear nueva contraseña
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(passwordNueva, salt);
