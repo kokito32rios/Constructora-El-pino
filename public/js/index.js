@@ -287,29 +287,6 @@ if (searchForm) {
 }
 
 // ============================================
-// FORMULARIO DE CONTACTO
-// ============================================
-const contactForm = document.getElementById('contactForm');
-if (contactForm) {
-    contactForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const submitBtn = contactForm.querySelector('button[type="submit"]');
-        const originalText = submitBtn.textContent;
-        submitBtn.textContent = 'Enviando...';
-        submitBtn.disabled = true;
-        
-        // Simular envío (aquí integrarías con tu backend o servicio de email)
-        setTimeout(() => {
-            alert('¡Gracias por contactarnos! Te responderemos pronto.');
-            contactForm.reset();
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
-        }, 1500);
-    });
-}
-
-// ============================================
 // SMOOTH SCROLL PARA ENLACES INTERNOS
 // ============================================
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -323,6 +300,51 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             });
         }
     });
+});
+
+// ============================================
+// MODAL POLÍTICA DE DATOS
+// ============================================
+const policyModal = document.getElementById('policyModal');
+const openPolicyBtn = document.getElementById('openPolicyModal');
+const closeModalBtn = document.getElementById('closeModal');
+const acceptPolicyBtn = document.getElementById('acceptPolicy');
+
+// Abrir modal
+if (openPolicyBtn) {
+    openPolicyBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        policyModal.classList.add('active');
+        document.body.style.overflow = 'hidden'; // Bloquear scroll del body
+    });
+}
+
+// Cerrar modal
+const closeModal = () => {
+    policyModal.classList.remove('active');
+    document.body.style.overflow = ''; // Restaurar scroll
+};
+
+if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', closeModal);
+}
+
+if (acceptPolicyBtn) {
+    acceptPolicyBtn.addEventListener('click', closeModal);
+}
+
+// Cerrar al hacer clic fuera del modal
+policyModal?.addEventListener('click', (e) => {
+    if (e.target === policyModal) {
+        closeModal();
+    }
+});
+
+// Cerrar con tecla ESC
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && policyModal.classList.contains('active')) {
+        closeModal();
+    }
 });
 
 // ============================================
