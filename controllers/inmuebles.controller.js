@@ -101,9 +101,12 @@ exports.getInmuebles = async (req, res) => {
         }
 
         // Contar total de resultados
-        const countQuery = query.replace(/SELECT .+ FROM/, 'SELECT COUNT(*) as total FROM');
+        let countQuery = query.replace(/SELECT[\s\S]+?FROM/, 'SELECT COUNT(i.id) as total FROM');
+        // Remover la subconsulta de imagen_principal del count
+        countQuery = countQuery.replace(/\(SELECT url FROM medios[^)]+\) as imagen_principal,?/g, '');
+        
         const [countResult] = await pool.query(countQuery, params);
-        const total = countResult[0].total;
+        const total = (countResult && countResult[0]) ? countResult[0].total : 0;
 
         // Paginación
         const offset = (page - 1) * limit;
