@@ -28,27 +28,30 @@ exports.getInmuebles = async (req, res) => {
 
         // Construir query dinámica
         let query = `
-            SELECT 
-                i.*,
-                tv.nombre as tipo_vivienda,
-                tt.nombre as tipo_transaccion,
-                e.nombre as estado_nombre,
-                c.nombre as condicion,
-                ciudad.nombre as ciudad,
-                ciudad.departamento,
-                u.nombre as usuario_nombre,
-                cli.nombre as cliente_nombre,
-                cli.telefono as cliente_telefono,
-                (SELECT url FROM medios WHERE inmueble_id = i.id AND es_principal = 1 LIMIT 1) as imagen_principal
-            FROM inmuebles i
-            INNER JOIN tipos_vivienda tv ON i.tipo_vivienda_id = tv.id
-            INNER JOIN tipos_transaccion tt ON i.tipo_transaccion_id = tt.id
-            INNER JOIN estados_inmueble e ON i.estado_id = e.id
-            INNER JOIN condiciones c ON i.condicion_id = c.id
-            INNER JOIN ciudades ciudad ON i.ciudad_id = ciudad.id
-            INNER JOIN usuarios u ON i.cedula_usuario = u.cedula
-            LEFT JOIN clientes cli ON i.cliente_id = cli.id
-            WHERE 1=1
+    SELECT 
+            i.*,
+            tv.nombre as tipo_vivienda,
+            tt.nombre as tipo_transaccion,
+            e.nombre as estado_nombre,
+            c.nombre as condicion,
+            ciudad.nombre as ciudad,
+            ciudad.departamento,
+            u.nombre as usuario_nombre,
+            cli.nombre as cliente_nombre,
+            cli.telefono as cliente_telefono,
+            m_principal.url AS imagen_principal
+        FROM inmuebles i
+        INNER JOIN tipos_vivienda tv ON i.tipo_vivienda_id = tv.id
+        INNER JOIN tipos_transaccion tt ON i.tipo_transaccion_id = tt.id
+        INNER JOIN estados_inmueble e ON i.estado_id = e.id
+        INNER JOIN condiciones c ON i.condicion_id = c.id
+        INNER JOIN ciudades ciudad ON i.ciudad_id = ciudad.id
+        INNER JOIN usuarios u ON i.cedula_usuario = u.cedula
+        LEFT JOIN clientes cli ON i.cliente_id = cli.id
+        LEFT JOIN medios m_principal 
+            ON i.id = m_principal.inmueble_id 
+            AND m_principal.es_principal = 1
+        WHERE 1=1
         `;
 
         const params = [];
