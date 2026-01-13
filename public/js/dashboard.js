@@ -92,15 +92,26 @@ if (mobileMenuToggle) {
 // ============================================
 const logoutBtn = document.getElementById("logoutBtn");
 
+const logoutModal = document.getElementById("logoutModal");
+const confirmLogout = document.getElementById("confirmLogout");
+const cancelLogout = document.getElementById("cancelLogout");
+
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
-    if (confirm("¿Estás seguro que deseas cerrar sesión?")) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("usuario");
-      window.location.href = "/views/login.html";
-    }
+    logoutModal.classList.add("active");
   });
 }
+
+cancelLogout.addEventListener("click", () => {
+  logoutModal.classList.remove("active");
+});
+
+confirmLogout.addEventListener("click", () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("usuario");
+  window.location.href = "/views/login.html";
+});
+
 
 // ============================================
 // CARGAR ESTADÍSTICAS
@@ -201,21 +212,38 @@ function crearTarjetaInmueble(inmueble) {
         cursor: pointer;
     `;
 
+  const mediaUrl =
+    inmueble.imagen_principal || "/public/images/placeholder.jpg";
+
+  const esVideo = /\.(mp4|webm|ogg)$/i.test(mediaUrl);
+
+  const mediaHTML = esVideo
+    ? `
+        <video 
+          src="${mediaUrl}" 
+          muted 
+          preload="metadata"
+          style="width:100%; height:100%; object-fit:cover;">
+        </video>
+      `
+    : `
+        <img 
+          src="${mediaUrl}" 
+          alt="${inmueble.tipo_vivienda}"
+          style="width:100%; height:100%; object-fit:cover;">
+      `;
+
   card.innerHTML = `
         <div style="width: 80px; height: 80px; border-radius: 8px; overflow: hidden; background: var(--gray-lighter);">
-            <img src="${
-              inmueble.imagen_principal || "/public/images/placeholder.jpg"
-            }" 
-                 alt="${inmueble.tipo_vivienda}"
-                 style="width: 100%; height: 100%; object-fit: cover;">
+            ${mediaHTML}
         </div>
         <div>
-            <h4 style="margin-bottom: 0.25rem; color: var(--dark-primary);">${
-              inmueble.tipo_vivienda
-            }</h4>
-            <p style="font-size: 0.9rem; color: var(--gray-medium); margin-bottom: 0.25rem;">${
-              inmueble.direccion
-            }, ${inmueble.ciudad}</p>
+            <h4 style="margin-bottom: 0.25rem; color: var(--dark-primary);">
+              ${inmueble.tipo_vivienda}
+            </h4>
+            <p style="font-size: 0.9rem; color: var(--gray-medium); margin-bottom: 0.25rem;">
+              ${inmueble.direccion}, ${inmueble.ciudad}
+            </p>
             <span style="display: inline-block; padding: 0.25rem 0.75rem; background: ${
               inmueble.estado_nombre === "Disponible"
                 ? "var(--green)"
@@ -228,11 +256,26 @@ function crearTarjetaInmueble(inmueble) {
             <p style="font-size: 1.25rem; font-weight: 700; color: var(--gold-primary); font-family: var(--font-heading);">
                 $${formatearPrecio(inmueble.precio)}
             </p>
-            <p style="font-size: 0.8rem; color: var(--gray-medium);">${
-              inmueble.tipo_transaccion
-            }</p>
+            <p style="font-size: 0.8rem; color: var(--gray-medium);">
+              ${inmueble.tipo_transaccion}
+            </p>
         </div>
     `;
+
+  // ▶ hover play / pause SOLO si es video
+  if (esVideo) {
+    const video = card.querySelector("video");
+
+    card.addEventListener("mouseenter", () => {
+      video.currentTime = 0;
+      video.play();
+    });
+
+    card.addEventListener("mouseleave", () => {
+      video.pause();
+      video.currentTime = 0;
+    });
+  }
 
   card.addEventListener("mouseenter", () => {
     card.style.background = "var(--white)";
@@ -248,6 +291,7 @@ function crearTarjetaInmueble(inmueble) {
 
   return card;
 }
+
 
 // ============================================
 // CARGAR CLIENTES RECIENTES
