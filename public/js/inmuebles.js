@@ -395,12 +395,13 @@ if (formInmueble) {
             const data = await response.json();
             
             if (data.success) {
-                showAlert(`Inmueble ${id ? 'actualizado' : 'creado'} exitosamente`, 'success');
-                closeModal(modalInmueble);
+                showSuccessModal(id ? 'Inmueble actualizado con éxito' : 'Inmueble agregado con éxito');
+                modalInmueble.classList.remove('active');
+                formInmueble.reset();
                 cargarInmuebles(paginaActual);
             } else {
-                showAlert(data.message || 'Error al guardar inmueble', 'error');
-            }
+    showAlert(data.message || 'Error al guardar inmueble', 'error');
+        }
         } catch (error) {
             console.error('Error al guardar inmueble:', error);
             showAlert('Error al guardar inmueble', 'error');
@@ -498,6 +499,24 @@ document.querySelectorAll('.nav-item[data-section="inmuebles"]').forEach(item =>
     item.addEventListener('click', () => {
         setTimeout(() => cargarInmuebles(), 100);
     });
+});
+
+// Modal de éxito
+const successModal = document.getElementById('successModal');
+const closeSuccessModal = document.getElementById('closeSuccessModal');
+const successMessage = document.getElementById('successMessage');
+
+function showSuccessModal(message = 'Inmueble agregado con éxito') {
+    successMessage.textContent = message;
+    successModal.classList.add('active');
+}
+
+closeSuccessModal?.addEventListener('click', () => {
+    successModal.classList.remove('active');
+});
+
+successModal?.addEventListener('click', (e) => {
+    if (e.target === successModal) successModal.classList.remove('active');
 });
 
 // Hacer las funciones globales para los botones inline

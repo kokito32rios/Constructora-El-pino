@@ -1107,3 +1107,25 @@ body {
         right: 1rem;
     }
 }
+
+/* Modal de éxito */
+.success-modal .modal-container {
+    max-width: 400px;
+    text-align: center;
+}
+
+.success-header {
+    background: #10b981;
+    color: white;
+    padding: 1.5rem;
+    border-radius: 16px 16px 0 0;
+}
+
+.success-modal .modal-body svg {
+    margin: 1rem 0;
+}
+
+#closeSuccessModal {
+    margin-top: 1rem;
+    padding: 0.75rem 2rem;
+}

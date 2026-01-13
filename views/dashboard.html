@@ -804,6 +804,34 @@
       </div>
     </div>
 
+    <!-- MODAL DE ÉXITO -->
+    <div class="modal-overlay success-modal" id="successModal">
+      <div class="modal-container small">
+        <div class="modal-header success-header">
+          <h2>¡Éxito!</h2>
+        </div>
+        <div class="modal-body text-center">
+          <svg
+            width="60"
+            height="60"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#10b981"
+            stroke-width="2"
+          >
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <p id="successMessage" style="margin: 1rem 0; font-size: 1.1rem">
+            Inmueble agregado con éxito
+          </p>
+          <button class="btn btn-primary" id="closeSuccessModal">
+            Aceptar
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script src="/public/js/dashboard.js"></script>
     <script src="/public/js/inmuebles.js"></script>
   </body>
