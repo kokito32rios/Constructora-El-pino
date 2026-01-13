@@ -302,16 +302,33 @@ async function editarInmueble(id) {
             document.getElementById('latitud').value = inmuebleActual.latitud || '';
             document.getElementById('longitud').value = inmuebleActual.longitud || '';
             
-            // Características
+            // Características - CORRECCIÓN AQUÍ
             if (inmuebleActual.caracteristicas) {
-                const caracteristicas = JSON.parse(inmuebleActual.caracteristicas);
-                Object.keys(caracteristicas).forEach(key => {
+                let caracteristicasObj = inmuebleActual.caracteristicas;
+                
+                // Si llega como string → parsear con seguridad
+                if (typeof caracteristicasObj === 'string') {
+                    try {
+                        caracteristicasObj = JSON.parse(caracteristicasObj);
+                    } catch (e) {
+                        console.error('Error parseando características:', e);
+                        caracteristicasObj = {}; // fallback vacío
+                    }
+                }
+                
+                // Ahora caracteristicasObj es objeto → marcar checkboxes
+                Object.keys(caracteristicasObj).forEach(key => {
                     const checkbox = document.querySelector(`input[name="${key}"]`);
-                    if (checkbox) checkbox.checked = caracteristicas[key];
+                    if (checkbox) {
+                        checkbox.checked = !!caracteristicasObj[key]; // fuerza boolean
+                    }
                 });
             }
             
+            // Abrir modal
             openModal(modalInmueble);
+        } else {
+            showAlert(data.message || 'Inmueble no encontrado', 'error');
         }
     } catch (error) {
         console.error('Error al cargar inmueble:', error);
