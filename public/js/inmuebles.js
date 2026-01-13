@@ -153,12 +153,9 @@ function mostrarInmuebles(inmuebles) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
-                ${
-                    inm.imagen_principal
-                        ? `<img src="${inm.imagen_principal}" alt="Foto" class="table-img">`
-                        : '<span class="no-image">Sin foto</span>'
-                }
+                ${renderMediaTabla(inm.imagen_principal)}
             </td>
+
 
             <td>
                 <strong>${inm.tipo_vivienda}</strong><br>
@@ -187,6 +184,31 @@ function mostrarInmuebles(inmuebles) {
         btn.addEventListener('click', () => eliminarInmueble(btn.dataset.id));
     });
 }
+
+// ============================================
+// MOSTRAR VIDEOS
+// ============================================
+function renderMediaTabla(url) {
+    if (!url) {
+        return '<span class="no-image">Sin medio</span>';
+    }
+
+    const ext = url.split('.').pop().toLowerCase();
+
+    if (['mp4', 'webm', 'ogg'].includes(ext)) {
+        return `
+            <video 
+                src="${url}" 
+                class="table-video"
+                muted
+                preload="metadata">
+            </video>
+        `;
+    }
+
+    return `<img src="${url}" alt="Foto" class="table-img">`;
+}
+
 
 // ============================================
 // MOSTRAR PAGINACIÓN
@@ -659,6 +681,24 @@ document.querySelectorAll('.nav-item[data-section="inmuebles"]').forEach(item =>
         setTimeout(() => cargarInmuebles(), 100);
     });
 });
+
+// ============================================
+// EVENTOS PARA PREVIEW DE VIDEO EN TABLA
+// ============================================
+
+document.addEventListener('mouseover', e => {
+    if (e.target.tagName === 'VIDEO') {
+        e.target.play();
+    }
+});
+
+document.addEventListener('mouseout', e => {
+    if (e.target.tagName === 'VIDEO') {
+        e.target.pause();
+        e.target.currentTime = 0;
+    }
+});
+
 
 // Hacer funciones globales para botones inline
 window.editarInmueble = editarInmueble;
