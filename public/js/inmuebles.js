@@ -14,6 +14,7 @@ const itemsPorPagina = 10;
 // ELEMENTOS DEL DOM
 // ============================================
 const btnNuevoInmueble = document.getElementById('btnNuevoInmueble');
+const btnNuevoInmuebleDashboard = document.getElementById('btnNuevoInmuebleDashboard');
 const modalInmueble = document.getElementById('modalInmueble');
 const closeModalInmueble = document.getElementById('closeModalInmueble');
 const btnCancelarInmueble = document.getElementById('btnCancelarInmueble');
@@ -146,66 +147,56 @@ async function cargarInmuebles(pagina = 1) {
 function mostrarInmuebles(inmuebles) {
     if (inmuebles.length === 0) {
         inmueblesTableBody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center">
-                    <p style="padding: 2rem; color: var(--gray-medium);">No se encontraron inmuebles</p>
-                </td>
-            </tr>
+            <tr><td colspan="7" class="text-center">No se encontraron inmuebles</td></tr>
         `;
         return;
     }
-    
+
     inmueblesTableBody.innerHTML = '';
-    
-    inmuebles.forEach(inmueble => {
+
+    inmuebles.forEach(inm => {
+        const badgeClass = {
+            'Disponible': 'bg-success',
+            'Vendido': 'bg-danger',
+            'Alquilado': 'bg-info',
+            'Reservado': 'bg-warning'
+        }[inm.estado_nombre] || 'bg-secondary';
+
         const tr = document.createElement('tr');
-        
-        // Clase de badge según estado
-        let badgeClass = 'badge-disponible';
-        if (inmueble.estado_nombre === 'Vendido') badgeClass = 'badge-vendido';
-        else if (inmueble.estado_nombre === 'Alquilado') badgeClass = 'badge-alquilado';
-        else if (inmueble.estado_nombre === 'Reservado') badgeClass = 'badge-reservado';
-        
         tr.innerHTML = `
             <td>
-                <img src="${inmueble.imagen_principal || '/public/images/placeholder.jpg'}" 
-                     alt="${inmueble.tipo_vivienda}" 
-                     class="table-img">
+                ${inm.imagen_principal 
+                    ? `<img src="${inm.imagen_principal}" alt="Foto" class="table-img">` 
+                    : '<span class="no-image">Sin foto</span>'}
             </td>
             <td>
-                <strong>${inmueble.tipo_vivienda}</strong><br>
-                <small style="color: var(--gray-medium);">${inmueble.medidas} m² · ${inmueble.habitaciones} hab · ${inmueble.banos} baños</small>
+                <strong>${inm.tipo_vivienda}</strong><br>
+                <small>${inm.medidas} m² · ${inm.habitaciones} hab · ${inm.banos} baños</small>
             </td>
             <td>
-                ${inmueble.direccion}<br>
-                <small style="color: var(--gray-medium);">${inmueble.barrio || ''} ${inmueble.ciudad}</small>
+                ${inm.direccion}<br>
+                <small>${inm.barrio ? inm.barrio + ', ' : ''}${inm.ciudad}</small>
             </td>
-            <td>${inmueble.tipo_transaccion}</td>
+            <td>${inm.tipo_transaccion}</td>
+            <td>$${Number(inm.precio).toLocaleString('es-CO')}</td>
+            <td><span class="badge ${badgeClass}">${inm.estado_nombre}</span></td>
             <td>
-                <strong style="color: var(--gold-primary);">$${formatearPrecio(inmueble.precio)}</strong>
-            </td>
-            <td>
-                <span class="table-badge ${badgeClass}">${inmueble.estado_nombre}</span>
-            </td>
-            <td>
-                <div class="table-actions">
-                    <button class="btn-icon btn-edit" onclick="editarInmueble(${inmueble.id})" title="Editar">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
-                    </button>
-                    <button class="btn-icon btn-delete" onclick="eliminarInmueble(${inmueble.id})" title="Eliminar">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                    </button>
-                </div>
+                <button class="btn btn-sm btn-primary editar-btn" data-id="${inm.id}">Editar</button>
+                <button class="btn btn-sm btn-danger eliminar-btn" data-id="${inm.id}">Eliminar</button>
             </td>
         `;
-        
         inmueblesTableBody.appendChild(tr);
+    });
+
+    // Eventos (ya los tienes, pero asegúrate)
+    document.querySelectorAll('.editar-btn').forEach(btn => {
+        btn.addEventListener('click', () => editarInmueble(btn.dataset.id));
+    });
+
+    document.querySelectorAll('.eliminar-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (confirm('¿Eliminar este inmueble?')) eliminarInmueble(btn.dataset.id);
+        });
     });
 }
 
@@ -261,14 +252,20 @@ function mostrarPaginacion(pagination) {
 // ============================================
 // ABRIR MODAL NUEVO INMUEBLE
 // ============================================
+function abrirModalNuevoInmueble() {
+    inmuebleActual = null;
+    document.getElementById('modalInmuebleTitle').textContent = 'Nuevo Inmueble';
+    formInmueble.reset();
+    document.getElementById('inmuebleId').value = '';
+    openModal(modalInmueble);
+}
+
 if (btnNuevoInmueble) {
-    btnNuevoInmueble.addEventListener('click', () => {
-        inmuebleActual = null;
-        document.getElementById('modalInmuebleTitle').textContent = 'Nuevo Inmueble';
-        formInmueble.reset();
-        document.getElementById('inmuebleId').value = '';
-        openModal(modalInmueble);
-    });
+    btnNuevoInmueble.addEventListener('click', abrirModalNuevoInmueble);
+}
+
+if (btnNuevoInmuebleDashboard) {
+    btnNuevoInmuebleDashboard.addEventListener('click', abrirModalNuevoInmueble);
 }
 
 // ============================================

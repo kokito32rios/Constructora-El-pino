@@ -2,15 +2,15 @@
 // DASHBOARD.JS
 // ============================================
 
-const API_URL = "http://localhost:3000/api";
+const API_URL_DASHBOARD = "http://localhost:3000/api";
 
 // ============================================
 // VERIFICAR AUTENTICACIÓN
 // ============================================
-const token = localStorage.getItem("token");
+const TOKEN_DASHBOARD = localStorage.getItem("token");
 const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
 
-if (!token) {
+if (!TOKEN_DASHBOARD) {
   window.location.href = "/views/login.html";
 }
 
@@ -108,7 +108,7 @@ if (logoutBtn) {
 async function cargarEstadisticas() {
   try {
     // Cargar total de inmuebles
-    const inmueblesRes = await fetch(`${API_URL}/inmuebles`, {
+    const inmueblesRes = await fetch(`${API_URL_DASHBOARD}/inmuebles`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -127,7 +127,7 @@ async function cargarEstadisticas() {
     }
 
     // Cargar total de clientes
-    const clientesRes = await fetch(`${API_URL}/clientes`, {
+    const clientesRes = await fetch(`${API_URL_DASHBOARD}/clientes`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -153,7 +153,7 @@ async function cargarInmueblesRecientes() {
   const container = document.getElementById("recentProperties");
 
   try {
-    const response = await fetch(`${API_URL}/inmuebles?limit=5`, {
+    const response = await fetch(`${API_URL_DASHBOARD}/inmuebles?limit=5`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -256,7 +256,7 @@ async function cargarClientesRecientes() {
   const container = document.getElementById("recentClients");
 
   try {
-    const response = await fetch(`${API_URL}/clientes?limit=5`, {
+    const response = await fetch(`${API_URL_DASHBOARD}/clientes?limit=5`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
