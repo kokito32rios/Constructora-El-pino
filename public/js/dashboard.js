@@ -110,7 +110,7 @@ async function cargarEstadisticas() {
     // Cargar total de inmuebles
     const inmueblesRes = await fetch(`${API_URL_DASHBOARD}/inmuebles`, {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${TOKEN_DASHBOARD }`,
       },
     });
     const inmueblesData = await inmueblesRes.json();

@@ -764,6 +764,38 @@
               </div>
             </div>
 
+            <!-- MEDIOS (IMÁGENES/VIDEOS) -->
+            <div class="form-section">
+              <h3>Medios (Imágenes y Videos)</h3>
+              <div class="form-group">
+                <label for="mediosFiles"
+                  >Subir archivos (múltiples permitidos)</label
+                >
+                <input
+                  type="file"
+                  id="mediosFiles"
+                  name="mediosFiles"
+                  accept="image/*,video/*"
+                  multiple
+                />
+                <small style="color: var(--gray-medium)"
+                  >Formatos: JPG, PNG, MP4, etc.</small
+                >
+              </div>
+
+              <!-- Galería de medios existentes (solo en modo edición) -->
+              <div
+                class="medios-galeria"
+                id="mediosGaleria"
+                style="
+                  margin-top: 1rem;
+                  display: grid;
+                  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                  gap: 1rem;
+                "
+              ></div>
+            </div>
+
             <div class="form-actions">
               <button
                 type="button"

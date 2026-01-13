@@ -29,29 +29,34 @@ exports.getInmuebles = async (req, res) => {
         // Construir query dinámica
         let query = `
     SELECT 
-            i.*,
-            tv.nombre as tipo_vivienda,
-            tt.nombre as tipo_transaccion,
-            e.nombre as estado_nombre,
-            c.nombre as condicion,
-            ciudad.nombre as ciudad,
-            ciudad.departamento,
-            u.nombre as usuario_nombre,
-            cli.nombre as cliente_nombre,
-            cli.telefono as cliente_telefono,
-            m_principal.url AS imagen_principal
-        FROM inmuebles i
-        INNER JOIN tipos_vivienda tv ON i.tipo_vivienda_id = tv.id
-        INNER JOIN tipos_transaccion tt ON i.tipo_transaccion_id = tt.id
-        INNER JOIN estados_inmueble e ON i.estado_id = e.id
-        INNER JOIN condiciones c ON i.condicion_id = c.id
-        INNER JOIN ciudades ciudad ON i.ciudad_id = ciudad.id
-        INNER JOIN usuarios u ON i.cedula_usuario = u.cedula
-        LEFT JOIN clientes cli ON i.cliente_id = cli.id
-        LEFT JOIN medios m_principal 
-            ON i.id = m_principal.inmueble_id 
-            AND m_principal.es_principal = 1
-        WHERE 1=1
+    i.*,
+    tv.nombre AS tipo_vivienda,
+    tt.nombre AS tipo_transaccion,
+    e.nombre AS estado_nombre,
+    c.nombre AS condicion,
+    ciudad.nombre AS ciudad,
+    ciudad.departamento,
+    u.nombre AS usuario_nombre,
+    cli.nombre AS cliente_nombre,
+    cli.telefono AS cliente_telefono,
+    m.url AS imagen_principal
+FROM inmuebles i
+INNER JOIN tipos_vivienda tv ON i.tipo_vivienda_id = tv.id
+INNER JOIN tipos_transaccion tt ON i.tipo_transaccion_id = tt.id
+INNER JOIN estados_inmueble e ON i.estado_id = e.id
+INNER JOIN condiciones c ON i.condicion_id = c.id
+INNER JOIN ciudades ciudad ON i.ciudad_id = ciudad.id
+INNER JOIN usuarios u ON i.cedula_usuario = u.cedula
+LEFT JOIN clientes cli ON i.cliente_id = cli.id
+LEFT JOIN medios m 
+    ON m.id = (
+        SELECT m2.id
+        FROM medios m2
+        WHERE m2.inmueble_id = i.id
+        ORDER BY m2.es_principal DESC, m2.orden ASC, m2.id ASC
+        LIMIT 1
+    )
+WHERE 1 = 1
         `;
 
         const params = [];
@@ -470,17 +475,12 @@ exports.deleteInmueble = async (req, res) => {
 // SUBIR MEDIOS (IMÁGENES/VIDEOS)
 // ============================================
 exports.uploadMedias = async (req, res) => {
+    console.log('[uploadMedias] Iniciando subida para inmueble ID:', req.params.id);
+    console.log('[uploadMedias] Archivos recibidos:', req.files ? req.files.length : 'NINGUNO');
+    console.log('[uploadMedias] Body recibido:', req.body);
+
     try {
         const { id } = req.params;
-
-        // Verificar que el inmueble existe
-        const [existe] = await pool.query('SELECT id FROM inmuebles WHERE id = ?', [id]);
-        if (existe.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Inmueble no encontrado'
-            });
-        }
 
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({
@@ -489,37 +489,43 @@ exports.uploadMedias = async (req, res) => {
             });
         }
 
-        // Insertar medios en la BD
-        const mediosInsertados = [];
-        
+        const medios = [];
+
         for (const file of req.files) {
-            const tipo = file.mimetype.startsWith('image/') ? 'imagen' : 'video';
+            console.log('[uploadMedias] Procesando archivo:', {
+                originalname: file.originalname,
+                mimetype: file.mimetype,
+                filename: file.filename,
+                size: file.size
+            });
+
             const url = `/uploads/${id}/${file.filename}`;
-            
-            const [resultado] = await pool.query(
-                'INSERT INTO medios (inmueble_id, tipo, url, nombre_archivo) VALUES (?, ?, ?, ?)',
-                [id, tipo, url, file.filename]
+            const tipo = file.mimetype.startsWith('image') ? 'imagen' : 'video';
+
+            const [result] = await pool.query(
+                `INSERT INTO medios (inmueble_id, tipo, url)
+                 VALUES (?, ?, ?)`,
+                [id, tipo, url]
             );
 
-            mediosInsertados.push({
-                id: resultado.insertId,
-                tipo,
+            medios.push({
+                id: result.insertId,
                 url,
-                nombre_archivo: file.filename
+                tipo
             });
         }
 
-        res.status(201).json({
+        res.json({
             success: true,
-            message: `${mediosInsertados.length} archivo(s) subido(s) exitosamente`,
-            data: mediosInsertados
+            message: `Se subieron ${medios.length} medios correctamente`,
+            data: medios
         });
 
     } catch (error) {
-        console.error('Error en uploadMedias:', error);
+        console.error('[uploadMedias] ERROR GRAVE:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al subir archivos',
+            message: 'Error interno al subir medios',
             error: error.message
         });
     }

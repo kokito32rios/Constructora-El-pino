@@ -5,14 +5,17 @@
 const API_URL = 'http://localhost:3000/api';
 const token = localStorage.getItem('token');
 
+if (!token) {
+    window.location.href = '/views/login.html';
+}
+
 // Variables globales
 let inmuebleActual = null;
 let paginaActual = 1;
 const itemsPorPagina = 10;
+let inmuebleIdToDelete = null;
 
-// ============================================
-// ELEMENTOS DEL DOM
-// ============================================
+// Elementos DOM
 const btnNuevoInmueble = document.getElementById('btnNuevoInmueble');
 const btnNuevoInmuebleDashboard = document.getElementById('btnNuevoInmuebleDashboard');
 const modalInmueble = document.getElementById('modalInmueble');
@@ -21,20 +24,31 @@ const btnCancelarInmueble = document.getElementById('btnCancelarInmueble');
 const formInmueble = document.getElementById('formInmueble');
 const btnGuardarInmueble = document.getElementById('btnGuardarInmueble');
 const inmueblesTableBody = document.getElementById('inmueblesTableBody');
+const paginationInmuebles = document.getElementById('paginationInmuebles');
+const mediosFilesInput = document.getElementById('mediosFiles');
+const mediosGaleria = document.getElementById('mediosGaleria');
 
-// Filtros
+// Filtros y modales
 const searchInmuebles = document.getElementById('searchInmuebles');
 const filterCiudad = document.getElementById('filterCiudad');
 const filterTipo = document.getElementById('filterTipo');
 const filterEstado = document.getElementById('filterEstado');
 const btnFiltrar = document.getElementById('btnFiltrar');
+const successModal = document.getElementById('successModal');
+const closeSuccessModal = document.getElementById('closeSuccessModal');
+const successMessage = document.getElementById('successMessage');
+const confirmDeleteModal = document.getElementById('confirmDeleteModal');
+const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+const cancelDelete = document.getElementById('cancelDelete');
 
 // ============================================
 // CARGAR CATÁLOGOS
 // ============================================
 async function cargarCatalogos() {
     try {
-        const response = await fetch(`${API_URL}/catalogos/all`);
+        const response = await fetch(`${API_URL}/catalogos/all`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
         const data = await response.json();
         
         if (data.success) {
@@ -45,20 +59,12 @@ async function cargarCatalogos() {
                 option.value = tipo.id;
                 option.textContent = tipo.nombre;
                 tiposVivienda.appendChild(option);
-                
-                // También para filtros
-                const optionFilter = option.cloneNode(true);
-                filterTipo.appendChild(optionFilter);
+                filterTipo.appendChild(option.cloneNode(true));
             });
             
             // Tipos de transacción
             const tiposTransaccion = document.getElementById('tipo_transaccion_id');
-            data.data.tiposTransaccion.forEach(tipo => {
-                const option = document.createElement('option');
-                option.value = tipo.id;
-                option.textContent = tipo.nombre;
-                tiposTransaccion.appendChild(option);
-            });
+            data.data.tiposTransaccion.forEach(tipo => tiposTransaccion.add(new Option(tipo.nombre, tipo.id)));
             
             // Estados
             const estados = document.getElementById('estado_id');
@@ -67,20 +73,12 @@ async function cargarCatalogos() {
                 option.value = estado.id;
                 option.textContent = estado.nombre;
                 estados.appendChild(option);
-                
-                // También para filtros
-                const optionFilter = option.cloneNode(true);
-                filterEstado.appendChild(optionFilter);
+                filterEstado.appendChild(option.cloneNode(true));
             });
             
             // Condiciones
             const condiciones = document.getElementById('condicion_id');
-            data.data.condiciones.forEach(condicion => {
-                const option = document.createElement('option');
-                option.value = condicion.id;
-                option.textContent = condicion.nombre;
-                condiciones.appendChild(option);
-            });
+            data.data.condiciones.forEach(condicion => condiciones.add(new Option(condicion.nombre, condicion.id)));
             
             // Ciudades
             const ciudades = document.getElementById('ciudad_id');
@@ -89,10 +87,7 @@ async function cargarCatalogos() {
                 option.value = ciudad.id;
                 option.textContent = ciudad.nombre;
                 ciudades.appendChild(option);
-                
-                // También para filtros
-                const optionFilter = option.cloneNode(true);
-                filterCiudad.appendChild(optionFilter);
+                filterCiudad.appendChild(option.cloneNode(true));
             });
         }
     } catch (error) {
@@ -111,33 +106,28 @@ async function cargarInmuebles(pagina = 1) {
             limit: itemsPorPagina
         });
         
-        // Agregar filtros si existen
-        if (searchInmuebles.value) params.append('search', searchInmuebles.value);
+        if (searchInmuebles.value.trim()) params.append('search', searchInmuebles.value.trim());
         if (filterCiudad.value) params.append('ciudad', filterCiudad.value);
         if (filterTipo.value) params.append('tipo_vivienda', filterTipo.value);
         if (filterEstado.value) params.append('estado', filterEstado.value);
         
         const response = await fetch(`${API_URL}/inmuebles?${params}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
         
         const data = await response.json();
+        console.log('RESPUESTA API:', data);
         
         if (data.success) {
             mostrarInmuebles(data.data);
             mostrarPaginacion(data.pagination);
+            paginaActual = pagina;
+        } else {
+            inmueblesTableBody.innerHTML = '<tr><td colspan="7">No se encontraron inmuebles</td></tr>';
         }
     } catch (error) {
         console.error('Error al cargar inmuebles:', error);
-        inmueblesTableBody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center">
-                    <p style="color: #ef4444; padding: 2rem;">Error al cargar inmuebles</p>
-                </td>
-            </tr>
-        `;
+        inmueblesTableBody.innerHTML = '<tr><td colspan="7">Error al cargar inmuebles</td></tr>';
     }
 }
 
@@ -146,9 +136,7 @@ async function cargarInmuebles(pagina = 1) {
 // ============================================
 function mostrarInmuebles(inmuebles) {
     if (inmuebles.length === 0) {
-        inmueblesTableBody.innerHTML = `
-            <tr><td colspan="7" class="text-center">No se encontraron inmuebles</td></tr>
-        `;
+        inmueblesTableBody.innerHTML = '<tr><td colspan="7" class="text-center">No se encontraron inmuebles</td></tr>';
         return;
     }
 
@@ -165,10 +153,13 @@ function mostrarInmuebles(inmuebles) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
-                ${inm.imagen_principal 
-                    ? `<img src="${inm.imagen_principal}" alt="Foto" class="table-img">` 
-                    : '<span class="no-image">Sin foto</span>'}
+                ${
+                    inm.imagen_principal
+                        ? `<img src="${inm.imagen_principal}" alt="Foto" class="table-img">`
+                        : '<span class="no-image">Sin foto</span>'
+                }
             </td>
+
             <td>
                 <strong>${inm.tipo_vivienda}</strong><br>
                 <small>${inm.medidas} m² · ${inm.habitaciones} hab · ${inm.banos} baños</small>
@@ -188,15 +179,12 @@ function mostrarInmuebles(inmuebles) {
         inmueblesTableBody.appendChild(tr);
     });
 
-    // Eventos (ya los tienes, pero asegúrate)
     document.querySelectorAll('.editar-btn').forEach(btn => {
         btn.addEventListener('click', () => editarInmueble(btn.dataset.id));
     });
 
     document.querySelectorAll('.eliminar-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            eliminarInmueble(btn.dataset.id);
-        });
+        btn.addEventListener('click', () => eliminarInmueble(btn.dataset.id));
     });
 }
 
@@ -209,64 +197,49 @@ function mostrarPaginacion(pagination) {
     
     const { page, totalPages } = pagination;
     
-    // Botón anterior
     const btnPrev = document.createElement('button');
-    btnPrev.textContent = '← Anterior';
+    btnPrev.textContent = 'Anterior';
     btnPrev.disabled = page === 1;
-    btnPrev.onclick = () => {
-        paginaActual = page - 1;
-        cargarInmuebles(paginaActual);
-    };
+    btnPrev.onclick = () => cargarInmuebles(page - 1);
     container.appendChild(btnPrev);
     
-    // Páginas
     for (let i = 1; i <= totalPages; i++) {
-        if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
-            const btnPage = document.createElement('button');
-            btnPage.textContent = i;
-            btnPage.className = i === page ? 'active' : '';
-            btnPage.onclick = () => {
-                paginaActual = i;
-                cargarInmuebles(paginaActual);
-            };
-            container.appendChild(btnPage);
-        } else if (i === page - 2 || i === page + 2) {
-            const span = document.createElement('span');
-            span.textContent = '...';
-            span.style.padding = '0.5rem';
-            container.appendChild(span);
-        }
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = i === page ? 'active' : '';
+        btn.onclick = () => cargarInmuebles(i);
+        container.appendChild(btn);
     }
     
-    // Botón siguiente
     const btnNext = document.createElement('button');
-    btnNext.textContent = 'Siguiente →';
+    btnNext.textContent = 'Siguiente';
     btnNext.disabled = page === totalPages;
-    btnNext.onclick = () => {
-        paginaActual = page + 1;
-        cargarInmuebles(paginaActual);
-    };
+    btnNext.onclick = () => cargarInmuebles(page + 1);
     container.appendChild(btnNext);
 }
 
 // ============================================
 // ABRIR MODAL NUEVO INMUEBLE
 // ============================================
-function abrirModalNuevoInmueble() {
+btnNuevoInmueble?.addEventListener('click', () => {
     inmuebleActual = null;
     document.getElementById('modalInmuebleTitle').textContent = 'Nuevo Inmueble';
     formInmueble.reset();
     document.getElementById('inmuebleId').value = '';
-    openModal(modalInmueble);
-}
+    document.getElementById('mediosGaleria').innerHTML = '';
+    mediosFilesInput.value = '';
+    modalInmueble.classList.add('active');
+});
 
-if (btnNuevoInmueble) {
-    btnNuevoInmueble.addEventListener('click', abrirModalNuevoInmueble);
-}
-
-if (btnNuevoInmuebleDashboard) {
-    btnNuevoInmuebleDashboard.addEventListener('click', abrirModalNuevoInmueble);
-}
+btnNuevoInmuebleDashboard?.addEventListener('click', () => {
+    inmuebleActual = null;
+    document.getElementById('modalInmuebleTitle').textContent = 'Nuevo Inmueble';
+    formInmueble.reset();
+    document.getElementById('inmuebleId').value = '';
+    document.getElementById('mediosGaleria').innerHTML = '';
+    mediosFilesInput.value = '';
+    modalInmueble.classList.add('active');
+});
 
 // ============================================
 // EDITAR INMUEBLE
@@ -274,9 +247,7 @@ if (btnNuevoInmuebleDashboard) {
 async function editarInmueble(id) {
     try {
         const response = await fetch(`${API_URL}/inmuebles/${id}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
         
         const data = await response.json();
@@ -285,47 +256,41 @@ async function editarInmueble(id) {
             inmuebleActual = data.data;
             document.getElementById('modalInmuebleTitle').textContent = 'Editar Inmueble';
             
-            // Llenar formulario
             document.getElementById('inmuebleId').value = inmuebleActual.id;
-            document.getElementById('tipo_vivienda_id').value = inmuebleActual.tipo_vivienda_id;
-            document.getElementById('tipo_transaccion_id').value = inmuebleActual.tipo_transaccion_id;
-            document.getElementById('condicion_id').value = inmuebleActual.condicion_id;
-            document.getElementById('estado_id').value = inmuebleActual.estado_id;
-            document.getElementById('direccion').value = inmuebleActual.direccion;
+            document.getElementById('tipo_vivienda_id').value = inmuebleActual.tipo_vivienda_id || '';
+            document.getElementById('tipo_transaccion_id').value = inmuebleActual.tipo_transaccion_id || '';
+            document.getElementById('condicion_id').value = inmuebleActual.condicion_id || '';
+            document.getElementById('estado_id').value = inmuebleActual.estado_id || '';
+            document.getElementById('direccion').value = inmuebleActual.direccion || '';
             document.getElementById('barrio').value = inmuebleActual.barrio || '';
-            document.getElementById('ciudad_id').value = inmuebleActual.ciudad_id;
-            document.getElementById('medidas').value = inmuebleActual.medidas;
-            document.getElementById('habitaciones').value = inmuebleActual.habitaciones;
-            document.getElementById('banos').value = inmuebleActual.banos;
-            document.getElementById('precio').value = inmuebleActual.precio;
+            document.getElementById('ciudad_id').value = inmuebleActual.ciudad_id || '';
+            document.getElementById('medidas').value = inmuebleActual.medidas || '';
+            document.getElementById('habitaciones').value = inmuebleActual.habitaciones || '';
+            document.getElementById('banos').value = inmuebleActual.banos || '';
+            document.getElementById('precio').value = inmuebleActual.precio || '';
             document.getElementById('descripcion').value = inmuebleActual.descripcion || '';
             document.getElementById('latitud').value = inmuebleActual.latitud || '';
             document.getElementById('longitud').value = inmuebleActual.longitud || '';
             
-            // Características - CORRECCIÓN AQUÍ
+            // Características
             if (inmuebleActual.caracteristicas) {
                 let caracteristicasObj = inmuebleActual.caracteristicas;
-                
-                // Si llega como string → parsear con seguridad
                 if (typeof caracteristicasObj === 'string') {
                     try {
                         caracteristicasObj = JSON.parse(caracteristicasObj);
                     } catch (e) {
-                        console.error('Error parseando características:', e);
-                        caracteristicasObj = {}; // fallback vacío
+                        caracteristicasObj = {};
                     }
                 }
-                
-                // Ahora caracteristicasObj es objeto → marcar checkboxes
                 Object.keys(caracteristicasObj).forEach(key => {
                     const checkbox = document.querySelector(`input[name="${key}"]`);
-                    if (checkbox) {
-                        checkbox.checked = !!caracteristicasObj[key]; // fuerza boolean
-                    }
+                    if (checkbox) checkbox.checked = !!caracteristicasObj[key];
                 });
             }
             
-            // Abrir modal
+            // Cargar medios existentes
+            await cargarMediosEnModal(id);
+            
             openModal(modalInmueble);
         } else {
             showAlert(data.message || 'Inmueble no encontrado', 'error');
@@ -337,20 +302,137 @@ async function editarInmueble(id) {
 }
 
 // ============================================
-// ELIMINAR INMUEBLE
+// CARGAR MEDIOS EN MODO EDICIÓN
 // ============================================
-let inmuebleIdToDelete = null;
+// ============================================
+// CARGAR MEDIOS EN MODO EDICIÓN
+// ============================================
+async function cargarMediosEnModal(inmuebleId) {
+    const galeria = document.getElementById('mediosGaleria');
+    galeria.innerHTML = '<p>Cargando medios...</p>';
 
+    try {
+        const response = await fetch(`${API_URL}/inmuebles/${inmuebleId}/medios`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+        galeria.innerHTML = '';
+
+        if (data.success && data.data.length > 0) {
+            data.data.forEach(medio => {
+                const div = document.createElement('div');
+                div.className = 'medios-item';
+
+                div.innerHTML = `
+                    ${medio.tipo === 'imagen'
+                        ? `<img src="${medio.url}" alt="Imagen">`
+                        : `<video src="${medio.url}" controls></video>`}
+
+                    ${medio.es_principal
+                        ? `<span class="principal-badge">Principal</span>`
+                        : `<button class="btn-principal" data-id="${medio.id}">
+                                Marcar como principal
+                           </button>`}
+
+                    <div class="actions">
+                        <button class="btn-delete-medio" data-id="${medio.id}">×</button>
+                    </div>
+                `;
+
+                galeria.appendChild(div);
+
+                // Marcar como principal
+                const btnPrincipal = div.querySelector('.btn-principal');
+                if (btnPrincipal) {
+                    btnPrincipal.addEventListener('click', () => {
+                        marcarImagenPrincipal(inmuebleId, medio.id);
+                    });
+                }
+
+                // Eliminar medio
+                div.querySelector('.btn-delete-medio').addEventListener('click', () => {
+                    if (confirm('¿Eliminar este medio?')) {
+                        eliminarMedio(inmuebleId, medio.id);
+                    }
+                });
+            });
+        } else {
+            galeria.innerHTML = '<p style="color:#999;">No hay medios subidos</p>';
+        }
+
+    } catch (error) {
+        console.error('Error al cargar medios:', error);
+        galeria.innerHTML = '<p style="color:#ef4444;">Error al cargar medios</p>';
+    }
+}
+
+// ============================================
+// MARCAR IMAGEN COMO PRINCIPAL
+// ============================================
+async function marcarImagenPrincipal(inmuebleId, mediaId) {
+    try {
+        const response = await fetch(
+            `${API_URL}/inmuebles/${inmuebleId}/medios/${mediaId}/principal`,
+            {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` }
+            }
+        );
+
+        const data = await response.json();
+
+        if (data.success) {
+            showAlert('Imagen marcada como principal', 'success');
+            cargarMediosEnModal(inmuebleId); // Recargar galería
+            cargarInmuebles(paginaActual);   // Actualizar tabla
+        } else {
+            showAlert(data.message || 'Error al marcar imagen', 'error');
+        }
+
+    } catch (error) {
+        console.error('Error al marcar principal:', error);
+        showAlert('Error al marcar imagen principal', 'error');
+    }
+}
+
+
+
+// ============================================
+// ELIMINAR MEDIO
+// ============================================
+async function eliminarMedio(inmuebleId, mediaId) {
+    try {
+        const response = await fetch(`${API_URL}/inmuebles/${inmuebleId}/medios/${mediaId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showAlert('Medio eliminado exitosamente', 'success');
+            cargarMediosEnModal(inmuebleId);
+        } else {
+            showAlert(data.message || 'Error al eliminar medio', 'error');
+        }
+    } catch (error) {
+        console.error('Error al eliminar medio:', error);
+        showAlert('Error al eliminar medio', 'error');
+    }
+}
+
+// ============================================
+// ELIMINAR INMUEBLE (abre modal de confirmación)
+// ============================================
 function eliminarInmueble(id) {
     inmuebleIdToDelete = id;
-    // Abre el modal de confirmación bonito
     document.getElementById('confirmDeleteModal').classList.add('active');
-    // Opcional: personaliza el mensaje si quieres
     document.getElementById('confirmDeleteMessage').textContent = 
         '¿Estás seguro de eliminar este inmueble? Esta acción no se puede deshacer.';
 }
 
-// Confirmar eliminación (botón "Sí, eliminar")
+// Confirmar eliminación
 document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
     if (!inmuebleIdToDelete) return;
 
@@ -361,9 +443,7 @@ document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () 
     try {
         const response = await fetch(`${API_URL}/inmuebles/${id}`, {
             method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
 
         const data = await response.json();
@@ -380,13 +460,12 @@ document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () 
     }
 });
 
-// Cancelar eliminación (botón "Cancelar")
+// Cancelar eliminación
 document.getElementById('cancelDelete')?.addEventListener('click', () => {
     inmuebleIdToDelete = null;
     document.getElementById('confirmDeleteModal').classList.remove('active');
 });
 
-// Cerrar modal al clic fuera
 document.getElementById('confirmDeleteModal')?.addEventListener('click', (e) => {
     if (e.target === document.getElementById('confirmDeleteModal')) {
         inmuebleIdToDelete = null;
@@ -395,7 +474,7 @@ document.getElementById('confirmDeleteModal')?.addEventListener('click', (e) => 
 });
 
 // ============================================
-// GUARDAR INMUEBLE
+// GUARDAR INMUEBLE + SUBIR MEDIOS
 // ============================================
 if (formInmueble) {
     formInmueble.addEventListener('submit', async (e) => {
@@ -409,11 +488,12 @@ if (formInmueble) {
         btnLoader.style.display = 'block';
         
         try {
+            // 1. Preparar datos del inmueble (sin medios)
             const formData = new FormData(formInmueble);
             const inmuebleData = {};
             
             for (let [key, value] of formData.entries()) {
-                if (key !== 'id') {
+                if (key !== 'id' && key !== 'mediosFiles') {
                     inmuebleData[key] = value;
                 }
             }
@@ -430,6 +510,7 @@ if (formInmueble) {
             const url = id ? `${API_URL}/inmuebles/${id}` : `${API_URL}/inmuebles`;
             const method = id ? 'PUT' : 'POST';
             
+            // 2. Guardar inmueble (crear o actualizar)
             const response = await fetch(url, {
                 method,
                 headers: {
@@ -441,14 +522,45 @@ if (formInmueble) {
             
             const data = await response.json();
             
-            if (data.success) {
-                showSuccessModal(id ? 'Inmueble actualizado con éxito' : 'Inmueble agregado con éxito');
-                modalInmueble.classList.remove('active');
-                formInmueble.reset();
-                cargarInmuebles(paginaActual);
-            } else {
-    showAlert(data.message || 'Error al guardar inmueble', 'error');
-        }
+            if (!data.success) {
+                showAlert(data.message || 'Error al guardar inmueble', 'error');
+                return;
+            }
+
+            // Obtener ID del inmueble (nuevo o existente)
+            const inmuebleId = id ? id : data.data.id;
+
+            // 3. Subir medios si hay archivos seleccionados
+            if (mediosFilesInput.files.length > 0) {
+                const mediosFormData = new FormData();
+                for (let file of mediosFilesInput.files) {
+                    mediosFormData.append('medios', file);
+                }
+
+                const uploadResponse = await fetch(`${API_URL}/inmuebles/${inmuebleId}/upload-medios`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: mediosFormData
+                });
+
+                const uploadData = await uploadResponse.json();
+
+                if (!uploadData.success) {
+                    showAlert('Inmueble guardado, pero error al subir medios: ' + (uploadData.message || 'Desconocido'), 'error');
+                } else {
+                    showAlert('Medios subidos correctamente', 'success');
+                }
+            }
+
+            // 4. Éxito final
+            showSuccessModal(id ? 'Inmueble actualizado con éxito' : 'Inmueble agregado con éxito');
+            modalInmueble.classList.remove('active');
+            formInmueble.reset();
+            mediosFilesInput.value = ''; // Limpiar input file
+            document.getElementById('mediosGaleria').innerHTML = '';
+            cargarInmuebles(paginaActual);
         } catch (error) {
             console.error('Error al guardar inmueble:', error);
             showAlert('Error al guardar inmueble', 'error');
@@ -463,28 +575,19 @@ if (formInmueble) {
 // ============================================
 // FILTRAR
 // ============================================
-if (btnFiltrar) {
-    btnFiltrar.addEventListener('click', () => {
-        paginaActual = 1;
-        cargarInmuebles(1);
-    });
-}
+btnFiltrar?.addEventListener('click', () => {
+    paginaActual = 1;
+    cargarInmuebles(1);
+});
 
 // ============================================
 // CERRAR MODALES
 // ============================================
-if (closeModalInmueble) {
-    closeModalInmueble.addEventListener('click', () => closeModal(modalInmueble));
-}
-
-if (btnCancelarInmueble) {
-    btnCancelarInmueble.addEventListener('click', () => closeModal(modalInmueble));
-}
+closeModalInmueble?.addEventListener('click', () => modalInmueble.classList.remove('active'));
+btnCancelarInmueble?.addEventListener('click', () => modalInmueble.classList.remove('active'));
 
 modalInmueble?.addEventListener('click', (e) => {
-    if (e.target === modalInmueble) {
-        closeModal(modalInmueble);
-    }
+    if (e.target === modalInmueble) modalInmueble.classList.remove('active');
 });
 
 // ============================================
@@ -528,44 +631,35 @@ function showAlert(message, type = 'info') {
     }, 4000);
 }
 
+function showSuccessModal(message = 'Inmueble agregado con éxito') {
+    successMessage.textContent = message;
+    successModal.classList.add('active');
+}
+
+closeSuccessModal?.addEventListener('click', () => successModal.classList.remove('active'));
+
+successModal?.addEventListener('click', (e) => {
+    if (e.target === successModal) successModal.classList.remove('active');
+});
+
 // ============================================
 // INICIALIZAR
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
     cargarCatalogos();
     
-    // Solo cargar si estamos en la sección de inmuebles
     const inmuebleSection = document.getElementById('section-inmuebles');
     if (inmuebleSection && inmuebleSection.classList.contains('active')) {
         cargarInmuebles();
     }
 });
 
-// Cargar cuando se cambie a la sección de inmuebles
 document.querySelectorAll('.nav-item[data-section="inmuebles"]').forEach(item => {
     item.addEventListener('click', () => {
         setTimeout(() => cargarInmuebles(), 100);
     });
 });
 
-// Modal de éxito
-const successModal = document.getElementById('successModal');
-const closeSuccessModal = document.getElementById('closeSuccessModal');
-const successMessage = document.getElementById('successMessage');
-
-function showSuccessModal(message = 'Inmueble agregado con éxito') {
-    successMessage.textContent = message;
-    successModal.classList.add('active');
-}
-
-closeSuccessModal?.addEventListener('click', () => {
-    successModal.classList.remove('active');
-});
-
-successModal?.addEventListener('click', (e) => {
-    if (e.target === successModal) successModal.classList.remove('active');
-});
-
-// Hacer las funciones globales para los botones inline
+// Hacer funciones globales para botones inline
 window.editarInmueble = editarInmueble;
 window.eliminarInmueble = eliminarInmueble;
