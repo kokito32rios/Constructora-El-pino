@@ -446,6 +446,23 @@ exports.deleteInmueble = async (req, res) => {
             });
         }
 
+        // Obtener medios para borrar archivos físicos
+const [medios] = await pool.query(
+    'SELECT url FROM medios WHERE inmueble_id = ?',
+    [id]
+);
+
+// Eliminar archivos físicos uno a uno
+for (const medio of medios) {
+    try {
+        const filePath = path.join(__dirname, '..', medio.url);
+        await deleteFile(filePath);
+    } catch (error) {
+        console.error('Error al eliminar archivo:', error);
+    }
+}
+
+
         // Eliminar inmueble (los medios se eliminan por CASCADE)
         await pool.query('DELETE FROM inmuebles WHERE id = ?', [id]);
 
