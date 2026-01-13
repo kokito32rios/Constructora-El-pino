@@ -195,7 +195,7 @@ function mostrarInmuebles(inmuebles) {
 
     document.querySelectorAll('.eliminar-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            if (confirm('¿Eliminar este inmueble?')) eliminarInmueble(btn.dataset.id);
+            eliminarInmueble(btn.dataset.id);
         });
     });
 }
@@ -339,9 +339,25 @@ async function editarInmueble(id) {
 // ============================================
 // ELIMINAR INMUEBLE
 // ============================================
-async function eliminarInmueble(id) {
-    if (!confirm('¿Estás seguro de eliminar este inmueble?')) return;
-    
+let inmuebleIdToDelete = null;
+
+function eliminarInmueble(id) {
+    inmuebleIdToDelete = id;
+    // Abre el modal de confirmación bonito
+    document.getElementById('confirmDeleteModal').classList.add('active');
+    // Opcional: personaliza el mensaje si quieres
+    document.getElementById('confirmDeleteMessage').textContent = 
+        '¿Estás seguro de eliminar este inmueble? Esta acción no se puede deshacer.';
+}
+
+// Confirmar eliminación (botón "Sí, eliminar")
+document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
+    if (!inmuebleIdToDelete) return;
+
+    const id = inmuebleIdToDelete;
+    inmuebleIdToDelete = null;
+    document.getElementById('confirmDeleteModal').classList.remove('active');
+
     try {
         const response = await fetch(`${API_URL}/inmuebles/${id}`, {
             method: 'DELETE',
@@ -349,11 +365,11 @@ async function eliminarInmueble(id) {
                 'Authorization': `Bearer ${token}`
             }
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
-            showAlert('Inmueble eliminado exitosamente', 'success');
+            showSuccessModal('Inmueble eliminado exitosamente');
             cargarInmuebles(paginaActual);
         } else {
             showAlert(data.message || 'Error al eliminar inmueble', 'error');
@@ -362,7 +378,21 @@ async function eliminarInmueble(id) {
         console.error('Error al eliminar inmueble:', error);
         showAlert('Error al eliminar inmueble', 'error');
     }
-}
+});
+
+// Cancelar eliminación (botón "Cancelar")
+document.getElementById('cancelDelete')?.addEventListener('click', () => {
+    inmuebleIdToDelete = null;
+    document.getElementById('confirmDeleteModal').classList.remove('active');
+});
+
+// Cerrar modal al clic fuera
+document.getElementById('confirmDeleteModal')?.addEventListener('click', (e) => {
+    if (e.target === document.getElementById('confirmDeleteModal')) {
+        inmuebleIdToDelete = null;
+        document.getElementById('confirmDeleteModal').classList.remove('active');
+    }
+});
 
 // ============================================
 // GUARDAR INMUEBLE

@@ -832,6 +832,53 @@
       </div>
     </div>
 
+    <!-- MODAL DE CONFIRMACIÓN DE ELIMINACIÓN -->
+    <div class="modal-overlay" id="confirmDeleteModal">
+      <div class="modal-container small">
+        <div class="modal-header danger-header">
+          <h2>¿Confirmar eliminación?</h2>
+        </div>
+        <div class="modal-body text-center">
+          <svg
+            width="60"
+            height="60"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#ef4444"
+            stroke-width="2"
+          >
+            <path d="M10.5 4.5v-2a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v2"></path>
+            <path d="M3 6h18"></path>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+            <path d="M9 10v6"></path>
+            <path d="M15 10v6"></path>
+          </svg>
+          <p
+            id="confirmDeleteMessage"
+            style="margin: 1rem 0; font-size: 1.1rem"
+          >
+            ¿Estás seguro de eliminar este inmueble? Esta acción no se puede
+            deshacer.
+          </p>
+          <div
+            style="
+              display: flex;
+              gap: 1rem;
+              justify-content: center;
+              margin-top: 1.5rem;
+            "
+          >
+            <button class="btn btn-secondary" id="cancelDelete">
+              Cancelar
+            </button>
+            <button class="btn btn-danger" id="confirmDeleteBtn">
+              Sí, eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="/public/js/dashboard.js"></script>
     <script src="/public/js/inmuebles.js"></script>
   </body>

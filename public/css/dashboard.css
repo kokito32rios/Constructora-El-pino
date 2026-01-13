@@ -1129,3 +1129,44 @@ body {
     margin-top: 1rem;
     padding: 0.75rem 2rem;
 }
+
+/* Modal de confirmación de eliminación */
+.danger-header {
+    background: #ef4444;
+    color: white;
+    padding: 1.5rem;
+    border-radius: 16px 16px 0 0;
+}
+
+#confirmDeleteModal .modal-container {
+    max-width: 450px;
+    text-align: center;
+}
+
+#confirmDeleteModal .modal-body svg {
+    margin: 1rem 0;
+}
+
+#cancelDelete,
+#confirmDeleteBtn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#cancelDelete {
+    background: var(--gray-lighter);
+    color: var(--gray-dark);
+    border: none;
+}
+
+#confirmDeleteBtn {
+    background: #ef4444;
+    color: white;
+    border: none;
+}
+
+#confirmDeleteBtn:hover {
+    background: #dc2626;
+}
