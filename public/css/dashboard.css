@@ -235,6 +235,14 @@ body {
     gap: 1.5rem;
 }
 
+.hidden {
+    display: none !important;
+}
+
+.notification-wrapper {
+    position: relative;
+}
+
 .notification-btn {
     position: relative;
     background: none;
@@ -262,6 +270,103 @@ body {
     border-radius: 10px;
     min-width: 18px;
     text-align: center;
+}
+
+.notification-panel {
+    position: absolute;
+    top: calc(100% + 0.75rem);
+    right: 0;
+    width: 380px;
+    max-height: 420px;
+    overflow: hidden;
+    background: var(--white);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 18px;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.14);
+    z-index: 300;
+}
+
+.notification-panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.notification-panel-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--dark-primary);
+}
+
+.notification-panel-header p {
+    margin: 0.25rem 0 0;
+    font-size: 0.8rem;
+    color: var(--gray-medium);
+}
+
+.notification-clear-btn {
+    border: none;
+    background: rgba(212, 175, 55, 0.14);
+    color: var(--gold-dark);
+    border-radius: 999px;
+    padding: 0.45rem 0.8rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.notification-list {
+    max-height: 330px;
+    overflow-y: auto;
+}
+
+.notification-empty {
+    padding: 1.25rem 1.1rem;
+    color: var(--gray-medium);
+    font-size: 0.9rem;
+}
+
+.notification-item {
+    padding: 1rem 1.1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    background: var(--white);
+}
+
+.notification-item.unread {
+    background: rgba(212, 175, 55, 0.08);
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.35rem;
+}
+
+.notification-item-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--dark-primary);
+}
+
+.notification-item-time {
+    font-size: 0.75rem;
+    color: var(--gray-medium);
+    white-space: nowrap;
+}
+
+.notification-item-message {
+    font-size: 0.86rem;
+    line-height: 1.45;
+    color: var(--gray-dark);
 }
 
 .user-profile {
@@ -588,6 +693,94 @@ body {
     border-radius: 12px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     overflow: hidden;
+}
+
+.filters-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.filter-group.compact {
+    min-width: 180px;
+}
+
+.filter-group.compact label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--gray-dark);
+}
+
+.filter-group.compact select {
+    width: 100%;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--gray-lighter);
+    border-radius: 14px;
+    background: var(--white);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--dark-primary);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.filter-group.compact select:focus {
+    outline: none;
+    border-color: var(--gold-primary);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.12);
+}
+
+.form-feedback {
+    margin-top: 1rem;
+    padding: 0.9rem 1rem;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.form-feedback.error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: min(100%, 520px);
+    padding: 0.9rem 1rem;
+    background: var(--white);
+    border: 1px solid var(--gray-lighter);
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.search-box svg {
+    color: var(--gray-medium);
+    flex-shrink: 0;
+}
+
+.search-box input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--dark-primary);
+    font-size: 0.95rem;
+    font-family: var(--font-body);
+}
+
+.search-box input::placeholder {
+    color: var(--gray-medium);
+}
+
+.search-box:focus-within {
+    border-color: var(--gold-primary);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.12);
 }
 
 .table-responsive {
@@ -1063,6 +1256,15 @@ body {
 
     .data-table {
         min-width: 800px;
+    }
+
+    .filters-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-box {
+        width: 100%;
     }
 
     .checkboxes-grid {

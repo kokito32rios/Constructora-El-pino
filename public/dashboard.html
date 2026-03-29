@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard - Constructora El Pino</title>
-    <link rel="stylesheet" href="/public/css/dashboard.css" />
+    <link rel="stylesheet" href="/css/dashboard.css" />
     <link
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -16,7 +16,7 @@
       <div class="sidebar-header">
         <div class="logo">
           <img
-            src="/public/images/logo.png"
+            src="/images/logo.png"
             alt="Constructora El Pino"
             class="logo-img"
           />
@@ -183,7 +183,8 @@
         </div>
 
         <div class="topbar-actions">
-          <button class="notification-btn">
+          <div class="notification-wrapper" id="notificationWrapper">
+            <button class="notification-btn" id="notificationBtn" type="button">
             <svg
               width="20"
               height="20"
@@ -195,8 +196,23 @@
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
               <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
             </svg>
-            <span class="notification-badge">3</span>
-          </button>
+            <span class="notification-badge hidden" id="notificationBadge">0</span>
+            </button>
+            <div class="notification-panel hidden" id="notificationPanel">
+              <div class="notification-panel-header">
+                <div>
+                  <h3>Notificaciones</h3>
+                  <p id="notificationSubtitle">Sin novedades</p>
+                </div>
+                <button type="button" class="notification-clear-btn" id="markNotificationsRead">
+                  Marcar leídas
+                </button>
+              </div>
+              <div class="notification-list" id="notificationList">
+                <div class="notification-empty">No hay notificaciones por ahora.</div>
+              </div>
+            </div>
+          </div>
 
           <div class="user-profile" id="userProfile">
             <img
@@ -462,7 +478,7 @@
       <section class="content-section" id="section-clientes">
         <div class="section-header">
           <h2>Gestión de Clientes</h2>
-          <button class="btn btn-primary">
+          <button class="btn btn-primary" id="btnNuevoCliente" type="button">
             <svg
               width="20"
               height="20"
@@ -478,21 +494,55 @@
           </button>
         </div>
 
-        <div class="empty-state">
-          <svg
-            width="120"
-            height="120"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-          >
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-          </svg>
-          <h3>Gestión de Clientes</h3>
-          <p>Aquí podrás administrar tu base de clientes</p>
+        <div class="filters-bar">
+          <div class="search-box">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="searchClientes"
+              placeholder="Buscar por nombre, cédula, teléfono o email"
+            />
+          </div>
         </div>
+
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="data-table" id="clientesTable">
+              <thead>
+                <tr>
+                  <th>Cédula</th>
+                  <th>Nombre</th>
+                  <th>Teléfono</th>
+                  <th>Email</th>
+                  <th>Dirección</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="clientesTableBody">
+                <tr>
+                  <td colspan="6" class="text-center">
+                    <div class="loading-state">
+                      <div class="spinner"></div>
+                      <p>Cargando clientes...</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="pagination" id="paginationClientes"></div>
       </section>
 
       <!-- TRANSACCIONES SECTION -->
@@ -501,28 +551,76 @@
           <h2>Historial de Transacciones</h2>
         </div>
 
-        <div class="empty-state">
-          <svg
-            width="120"
-            height="120"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-          >
-            <line x1="12" y1="1" x2="12" y2="23"></line>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-          </svg>
-          <h3>Transacciones</h3>
-          <p>Aquí verás el historial de ventas y arriendos</p>
+        <div class="filters-card">
+          <div class="filters-grid">
+            <div class="filter-group">
+              <label for="searchTransacciones">Buscar</label>
+              <input
+                type="text"
+                id="searchTransacciones"
+                placeholder="Cliente, cédula, dirección o ciudad..."
+              />
+            </div>
+            <div class="filter-group">
+              <label for="filterTransaccionTipo">Tipo</label>
+              <select id="filterTransaccionTipo">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="filterTransaccionEstado">Estado</label>
+              <select id="filterTransaccionEstado">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="filterFechaDesde">Desde</label>
+              <input type="date" id="filterFechaDesde" />
+            </div>
+            <div class="filter-group">
+              <label for="filterFechaHasta">Hasta</label>
+              <input type="date" id="filterFechaHasta" />
+            </div>
+          </div>
         </div>
+
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="data-table" id="transaccionesTable">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Cliente</th>
+                  <th>Propiedad</th>
+                  <th>Ciudad</th>
+                  <th>Tipo</th>
+                  <th>Estado</th>
+                  <th>Valor</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="transaccionesTableBody">
+                <tr>
+                  <td colspan="8" class="text-center">
+                    <div class="loading-state">
+                      <div class="spinner"></div>
+                      <p>Cargando transacciones...</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="pagination" id="paginationTransacciones"></div>
       </section>
 
       <!-- USUARIOS SECTION -->
       <section class="content-section" id="section-usuarios">
         <div class="section-header">
           <h2>Gestión de Usuarios</h2>
-          <button class="btn btn-primary">
+          <button class="btn btn-primary" type="button" id="btnNuevoUsuario">
             <svg
               width="20"
               height="20"
@@ -538,21 +636,72 @@
           </button>
         </div>
 
-        <div class="empty-state">
-          <svg
-            width="120"
-            height="120"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-          >
-            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="8.5" cy="7" r="4"></circle>
-          </svg>
-          <h3>Gestión de Usuarios</h3>
-          <p>Administra los usuarios del sistema</p>
+        <div class="filters-bar">
+          <div class="search-box">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="searchUsuarios"
+              placeholder="Buscar por nombre, cédula o email"
+            />
+          </div>
+
+          <div class="filter-group compact">
+            <label for="filterRolUsuario">Rol</label>
+            <select id="filterRolUsuario">
+              <option value="">Todos</option>
+            </select>
+          </div>
+
+          <div class="filter-group compact">
+            <label for="filterEstadoUsuario">Estado</label>
+            <select id="filterEstadoUsuario">
+              <option value="">Todos</option>
+              <option value="1">Activos</option>
+              <option value="0">Inactivos</option>
+            </select>
+          </div>
         </div>
+
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="data-table" id="usuariosTable">
+              <thead>
+                <tr>
+                  <th>Cédula</th>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Rol</th>
+                  <th>Estado</th>
+                  <th>Creado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="usuariosTableBody">
+                <tr>
+                  <td colspan="7" class="text-center">
+                    <div class="loading-state">
+                      <div class="spinner"></div>
+                      <p>Cargando usuarios...</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="pagination" id="paginationUsuarios"></div>
       </section>
     </main>
 
@@ -681,11 +830,11 @@
                 <div class="form-group">
                   <label for="precio">Precio *</label>
                   <input
-                    type="number"
+                    type="text"
                     id="precio"
                     name="precio"
-                    step="0.01"
-                    min="0"
+                    inputmode="decimal"
+                    autocomplete="off"
                     required
                   />
                 </div>
@@ -837,6 +986,84 @@
     </div>
 
     <!-- MODAL DE ÉXITO -->
+    <div class="modal-overlay" id="modalTransaccion">
+      <div class="modal-container">
+        <button class="modal-close" id="closeModalTransaccion">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+
+        <div class="modal-header">
+          <h2 id="modalTransaccionFormTitle">Registrar Transacción</h2>
+        </div>
+
+        <div class="modal-body">
+          <form id="formTransaccion" class="inmueble-form">
+            <input type="hidden" id="transaccionInmuebleId" />
+
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label for="transaccionClienteId">Cliente *</label>
+                <select id="transaccionClienteId" name="cliente_id" required>
+                  <option value="">Selecciona un cliente</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="transaccionEstadoId">Estado final *</label>
+                <select id="transaccionEstadoId" name="estado_id" required>
+                  <option value="">Selecciona un estado</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="transaccionFecha">Fecha *</label>
+                <input type="date" id="transaccionFecha" name="fecha_transaccion" required />
+              </div>
+
+              <div class="form-group full-width">
+                <label for="transaccionValor">Valor de la transacción *</label>
+                <input
+                  type="text"
+                  id="transaccionValor"
+                  name="valor_transaccion"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  required
+                />
+              </div>
+
+              <div class="form-group full-width">
+                <label for="transaccionNotas">Notas</label>
+                <textarea id="transaccionNotas" name="notas_transaccion" rows="4"></textarea>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" id="btnCancelarTransaccion">
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-primary" id="btnGuardarTransaccion">
+                <span class="btn-text">Guardar Transacción</span>
+                <span class="btn-loader" style="display: none">
+                  <div class="spinner small"></div>
+                </span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <div class="modal-overlay success-modal" id="successModal">
       <div class="modal-container small">
         <div class="modal-header success-header">
@@ -911,6 +1138,353 @@
       </div>
     </div>
 
+    <div class="modal-overlay" id="modalCliente">
+      <div class="modal-container">
+        <button class="modal-close" id="closeModalCliente">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+
+        <div class="modal-header">
+          <h2 id="modalClienteTitle">Nuevo Cliente</h2>
+        </div>
+
+        <div class="modal-body">
+          <form id="formCliente" class="inmueble-form">
+            <input type="hidden" id="clienteId" name="id" />
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="clienteCedula">Cédula *</label>
+                <input type="text" id="clienteCedula" name="cedula" required />
+              </div>
+
+              <div class="form-group">
+                <label for="clienteNombre">Nombre completo *</label>
+                <input type="text" id="clienteNombre" name="nombre" required />
+              </div>
+
+              <div class="form-group">
+                <label for="clienteTelefono">Teléfono</label>
+                <input type="text" id="clienteTelefono" name="telefono" />
+              </div>
+
+              <div class="form-group">
+                <label for="clienteEmail">Email</label>
+                <input type="email" id="clienteEmail" name="email" />
+              </div>
+
+              <div class="form-group full-width">
+                <label for="clienteDireccion">Dirección</label>
+                <input type="text" id="clienteDireccion" name="direccion" />
+              </div>
+
+              <div class="form-group full-width">
+                <label for="clienteNotas">Notas</label>
+                <textarea id="clienteNotas" name="notas" rows="4"></textarea>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" id="btnCancelarCliente">
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-primary" id="btnGuardarCliente">
+                <span class="btn-text">Guardar Cliente</span>
+                <span class="btn-loader" style="display: none">
+                  <div class="spinner small"></div>
+                </span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="confirmDeleteClienteModal">
+      <div class="modal-container small">
+        <div class="modal-header danger-header">
+          <h2>¿Eliminar cliente?</h2>
+        </div>
+        <div class="modal-body text-center">
+          <p
+            id="confirmDeleteClienteMessage"
+            style="margin: 1rem 0; font-size: 1.1rem"
+          >
+            Esta acción no se puede deshacer.
+          </p>
+          <div
+            style="
+              display: flex;
+              gap: 1rem;
+              justify-content: center;
+              margin-top: 1.5rem;
+            "
+          >
+            <button class="btn btn-secondary" id="cancelDeleteCliente">
+              Cancelar
+            </button>
+            <button class="btn btn-danger" id="confirmDeleteClienteBtn">
+              Sí, eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="modalClienteTransacciones">
+      <div class="modal-container large">
+        <button class="modal-close" id="closeModalClienteTransacciones">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+
+        <div class="modal-header">
+          <h2 id="clienteTransaccionesTitle">Historial del Cliente</h2>
+        </div>
+
+        <div class="modal-body">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Propiedad</th>
+                  <th>Ciudad</th>
+                  <th>Tipo</th>
+                  <th>Estado</th>
+                  <th>Fecha</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody id="clienteTransaccionesBody">
+                <tr>
+                  <td colspan="6" class="text-center">Sin transacciones registradas</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="modalUsuario">
+      <div class="modal-container">
+        <button class="modal-close" id="closeModalUsuario">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+
+        <div class="modal-header">
+          <h2 id="modalUsuarioTitle">Nuevo Usuario</h2>
+        </div>
+
+        <div class="modal-body">
+          <form id="formUsuario" class="inmueble-form">
+            <input type="hidden" id="usuarioMode" value="create" />
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="usuarioCedula">Cédula *</label>
+                <input type="text" id="usuarioCedula" name="cedula" required />
+              </div>
+
+              <div class="form-group">
+                <label for="usuarioNombre">Nombre completo *</label>
+                <input type="text" id="usuarioNombre" name="nombre" required />
+              </div>
+
+              <div class="form-group full-width">
+                <label for="usuarioEmail">Email *</label>
+                <input type="email" id="usuarioEmail" name="email" required />
+              </div>
+
+              <div class="form-group">
+                <label for="usuarioRolId">Rol *</label>
+                <select id="usuarioRolId" name="rol_id" required>
+                  <option value="">Selecciona un rol</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="usuarioActivo">Estado</label>
+                <select id="usuarioActivo" name="activo">
+                  <option value="1">Activo</option>
+                  <option value="0">Inactivo</option>
+                </select>
+              </div>
+
+              <div class="form-group full-width">
+                <label for="usuarioPassword">Contraseña <span id="usuarioPasswordHint">*</span></label>
+                <input
+                  type="password"
+                  id="usuarioPassword"
+                  name="password"
+                  autocomplete="new-password"
+                  required
+                />
+                <small id="usuarioPasswordHelp" style="color: var(--gray-medium);">
+                  La contraseña debe tener al menos 6 caracteres.
+                </small>
+              </div>
+            </div>
+
+            <div class="form-feedback error hidden" id="usuarioFormError"></div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" id="btnCancelarUsuario">
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-primary" id="btnGuardarUsuario">
+                <span class="btn-text">Guardar Usuario</span>
+                <span class="btn-loader" style="display: none">
+                  <div class="spinner small"></div>
+                </span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="modalUsuarioInmuebles">
+      <div class="modal-container large">
+        <button class="modal-close" id="closeModalUsuarioInmuebles">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+
+        <div class="modal-header">
+          <h2 id="usuarioInmueblesTitle">Inmuebles registrados</h2>
+        </div>
+
+        <div class="modal-body">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Propiedad</th>
+                  <th>Dirección</th>
+                  <th>Ciudad</th>
+                  <th>Tipo</th>
+                  <th>Estado</th>
+                  <th>Precio</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody id="usuarioInmueblesBody">
+                <tr>
+                  <td colspan="7" class="text-center">Sin inmuebles registrados</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="modalTransaccionDetalle">
+      <div class="modal-container large">
+        <button class="modal-close" id="closeModalTransaccionDetalle">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+
+        <div class="modal-header">
+          <h2 id="modalTransaccionTitle">Detalle de Transacción</h2>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Cliente</label>
+              <input type="text" id="detalleTransaccionCliente" readonly />
+            </div>
+            <div class="form-group">
+              <label>Cédula</label>
+              <input type="text" id="detalleTransaccionCedula" readonly />
+            </div>
+            <div class="form-group">
+              <label>Tipo</label>
+              <input type="text" id="detalleTransaccionTipo" readonly />
+            </div>
+            <div class="form-group">
+              <label>Estado</label>
+              <input type="text" id="detalleTransaccionEstado" readonly />
+            </div>
+            <div class="form-group">
+              <label>Fecha</label>
+              <input type="text" id="detalleTransaccionFecha" readonly />
+            </div>
+            <div class="form-group">
+              <label>Valor</label>
+              <input type="text" id="detalleTransaccionValor" readonly />
+            </div>
+            <div class="form-group full-width">
+              <label>Propiedad</label>
+              <input type="text" id="detalleTransaccionPropiedad" readonly />
+            </div>
+            <div class="form-group">
+              <label>Ciudad</label>
+              <input type="text" id="detalleTransaccionCiudad" readonly />
+            </div>
+            <div class="form-group">
+              <label>Asesor</label>
+              <input type="text" id="detalleTransaccionAsesor" readonly />
+            </div>
+            <div class="form-group full-width">
+              <label>Notas</label>
+              <textarea id="detalleTransaccionNotas" rows="4" readonly></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL CERRAR SESIÓN -->
     <div id="logoutModal" class="modal-overlay">
       <div class="modal-box">
@@ -924,7 +1498,17 @@
       </div>
     </div>
 
-    <script src="/public/js/dashboard.js"></script>
-    <script src="/public/js/inmuebles.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/dashboard.js"></script>
+    <script src="/js/inmuebles.js"></script>
+    <script src="/js/clientes.js"></script>
+    <script src="/js/transacciones.js"></script>
+    <script src="/js/usuarios.js"></script>
   </body>
 </html>
+
+
+
+
+
+

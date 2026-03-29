@@ -22,8 +22,7 @@ exports.getTiposVivienda = async (req, res) => {
         console.error('Error en getTiposVivienda:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener tipos de vivienda',
-            error: error.message
+            message: 'Error al obtener tipos de vivienda'
         });
     }
 };
@@ -46,8 +45,7 @@ exports.getTiposTransaccion = async (req, res) => {
         console.error('Error en getTiposTransaccion:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener tipos de transacción',
-            error: error.message
+            message: 'Error al obtener tipos de transacción'
         });
     }
 };
@@ -70,8 +68,7 @@ exports.getEstadosInmueble = async (req, res) => {
         console.error('Error en getEstadosInmueble:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener estados de inmueble',
-            error: error.message
+            message: 'Error al obtener estados de inmueble'
         });
     }
 };
@@ -94,8 +91,7 @@ exports.getCondiciones = async (req, res) => {
         console.error('Error en getCondiciones:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener condiciones',
-            error: error.message
+            message: 'Error al obtener condiciones'
         });
     }
 };
@@ -118,8 +114,7 @@ exports.getCiudades = async (req, res) => {
         console.error('Error en getCiudades:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener ciudades',
-            error: error.message
+            message: 'Error al obtener ciudades'
         });
     }
 };
@@ -142,8 +137,7 @@ exports.getRoles = async (req, res) => {
         console.error('Error en getRoles:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener roles',
-            error: error.message
+            message: 'Error al obtener roles'
         });
     }
 };
@@ -193,8 +187,7 @@ exports.getAllCatalogos = async (req, res) => {
         console.error('Error en getAllCatalogos:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener catálogos',
-            error: error.message
+            message: 'Error al obtener catálogos'
         });
     }
 };

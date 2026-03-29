@@ -3,11 +3,13 @@
 // ============================================
 
 const API_URL = 'http://localhost:3000/api';
-const token = localStorage.getItem('token');
-
-if (!token) {
-    window.location.href = '/views/login.html';
+function authFetch(url, options = {}) {
+    return fetch(url, {
+        ...options,
+        credentials: 'same-origin'
+    });
 }
+
 
 // Variables globales
 let inmuebleActual = null;
@@ -27,6 +29,7 @@ const inmueblesTableBody = document.getElementById('inmueblesTableBody');
 const paginationInmuebles = document.getElementById('paginationInmuebles');
 const mediosFilesInput = document.getElementById('mediosFiles');
 const mediosGaleria = document.getElementById('mediosGaleria');
+const precioInput = document.getElementById('precio');
 
 // Filtros y modales
 const searchInmuebles = document.getElementById('searchInmuebles');
@@ -40,14 +43,142 @@ const successMessage = document.getElementById('successMessage');
 const confirmDeleteModal = document.getElementById('confirmDeleteModal');
 const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
 const cancelDelete = document.getElementById('cancelDelete');
+const modalTransaccion = document.getElementById('modalTransaccion');
+const closeModalTransaccion = document.getElementById('closeModalTransaccion');
+const btnCancelarTransaccion = document.getElementById('btnCancelarTransaccion');
+const formTransaccion = document.getElementById('formTransaccion');
+const btnGuardarTransaccion = document.getElementById('btnGuardarTransaccion');
+const transaccionClienteId = document.getElementById('transaccionClienteId');
+const transaccionEstadoId = document.getElementById('transaccionEstadoId');
+const transaccionFecha = document.getElementById('transaccionFecha');
+const transaccionValor = document.getElementById('transaccionValor');
+const MAX_VALOR_TRANSACCION = 9999999999999.99;
+
+function limpiarValorMoneda(valor) {
+    if (valor === undefined || valor === null) {
+        return '';
+    }
+
+    return String(valor).replace(/[^\d,.-]/g, '').replace(/\./g, '');
+}
+
+function formatearValorMoneda(valor) {
+    const limpio = limpiarValorMoneda(valor).replace(',', '.');
+    if (!limpio) {
+        return '';
+    }
+
+    const numero = Number(limpio);
+    if (!Number.isFinite(numero)) {
+        return '';
+    }
+
+    return new Intl.NumberFormat('es-CO', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+    }).format(numero);
+}
+
+function formatearFechaInput(fecha = new Date()) {
+    return new Date(fecha).toISOString().split('T')[0];
+}
+
+let clientesTransaccionCargados = false;
+
+function inicializarFormatoPrecio() {
+    if (!precioInput) {
+        return;
+    }
+
+    precioInput.addEventListener('input', () => {
+        const valorFormateado = formatearValorMoneda(precioInput.value);
+        precioInput.value = valorFormateado;
+    });
+
+    precioInput.addEventListener('blur', () => {
+        precioInput.value = formatearValorMoneda(precioInput.value);
+    });
+}
+
+function inicializarFormatoValorTransaccion() {
+    if (!transaccionValor) {
+        return;
+    }
+
+    transaccionValor.addEventListener('input', () => {
+        transaccionValor.value = formatearValorMoneda(transaccionValor.value);
+    });
+
+    transaccionValor.addEventListener('blur', () => {
+        transaccionValor.value = formatearValorMoneda(transaccionValor.value);
+    });
+}
+
+async function cargarClientesParaTransaccion() {
+    if (!transaccionClienteId || clientesTransaccionCargados) {
+        return;
+    }
+
+    const response = await authFetch(`${API_URL}/clientes?limit=200`, {});
+    const data = await response.json();
+
+    if (!data.success) {
+        throw new Error(data.message || 'No se pudieron cargar los clientes');
+    }
+
+    data.data.forEach(cliente => {
+        transaccionClienteId.add(new Option(`${cliente.nombre} (${cliente.cedula})`, cliente.id));
+    });
+
+    clientesTransaccionCargados = true;
+}
+
+async function cargarEstadosParaTransaccion() {
+    if (!transaccionEstadoId || transaccionEstadoId.options.length > 1) {
+        return;
+    }
+
+    const response = await authFetch(`${API_URL}/catalogos/all`, {});
+    const data = await response.json();
+
+    if (!data.success) {
+        throw new Error(data.message || 'No se pudieron cargar los estados');
+    }
+
+    data.data.estados
+        .filter(estado => ['Vendido', 'Alquilado'].includes(estado.nombre))
+        .forEach(estado => {
+            transaccionEstadoId.add(new Option(estado.nombre, estado.id));
+        });
+}
+
+async function abrirModalTransaccion(inmuebleId, precio) {
+    try {
+        await Promise.all([
+            cargarClientesParaTransaccion(),
+            cargarEstadosParaTransaccion()
+        ]);
+
+        document.getElementById('transaccionInmuebleId').value = inmuebleId;
+        transaccionClienteId.value = '';
+        transaccionEstadoId.value = '';
+        transaccionFecha.value = formatearFechaInput();
+        transaccionValor.value = formatearValorMoneda(precio || '');
+        document.getElementById('transaccionNotas').value = '';
+
+        openModal(modalTransaccion);
+    } catch (error) {
+        console.error('Error al preparar transacción:', error);
+        showAlert('No se pudo preparar el registro de transacción', 'error');
+    }
+}
 
 // ============================================
 // CARGAR CATÁLOGOS
 // ============================================
 async function cargarCatalogos() {
     try {
-        const response = await fetch(`${API_URL}/catalogos/all`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const response = await authFetch(`${API_URL}/catalogos/all`, {
         });
         const data = await response.json();
         
@@ -111,8 +242,7 @@ async function cargarInmuebles(pagina = 1) {
         if (filterTipo.value) params.append('tipo_vivienda', filterTipo.value);
         if (filterEstado.value) params.append('estado', filterEstado.value);
         
-        const response = await fetch(`${API_URL}/inmuebles?${params}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const response = await authFetch(`${API_URL}/inmuebles?${params}`, {
         });
         
         const data = await response.json();
@@ -170,6 +300,10 @@ function mostrarInmuebles(inmuebles) {
             <td><span class="badge ${badgeClass}">${inm.estado_nombre}</span></td>
             <td>
                 <button class="btn btn-sm btn-primary editar-btn" data-id="${inm.id}">Editar</button>
+                ${inm.cliente_id
+                    ? `<button class="btn btn-sm btn-secondary ver-transaccion-inmueble-btn" data-id="${inm.id}">Ver transacción</button>`
+                    : `<button class="btn btn-sm btn-secondary registrar-transaccion-btn" data-id="${inm.id}" data-precio="${inm.precio}">Registrar transacción</button>`
+                }
                 <button class="btn btn-sm btn-danger eliminar-btn" data-id="${inm.id}">Eliminar</button>
             </td>
         `;
@@ -182,6 +316,19 @@ function mostrarInmuebles(inmuebles) {
 
     document.querySelectorAll('.eliminar-btn').forEach(btn => {
         btn.addEventListener('click', () => eliminarInmueble(btn.dataset.id));
+    });
+
+    document.querySelectorAll('.registrar-transaccion-btn').forEach(btn => {
+        btn.addEventListener('click', () => abrirModalTransaccion(btn.dataset.id, btn.dataset.precio));
+    });
+
+    document.querySelectorAll('.ver-transaccion-inmueble-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelector('.nav-item[data-section="transacciones"]')?.click();
+            setTimeout(() => {
+                document.querySelector(`.ver-transaccion-btn[data-id="${btn.dataset.id}"]`)?.click();
+            }, 400);
+        });
     });
 }
 
@@ -268,8 +415,7 @@ btnNuevoInmuebleDashboard?.addEventListener('click', () => {
 // ============================================
 async function editarInmueble(id) {
     try {
-        const response = await fetch(`${API_URL}/inmuebles/${id}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const response = await authFetch(`${API_URL}/inmuebles/${id}`, {
         });
         
         const data = await response.json();
@@ -289,7 +435,7 @@ async function editarInmueble(id) {
             document.getElementById('medidas').value = inmuebleActual.medidas || '';
             document.getElementById('habitaciones').value = inmuebleActual.habitaciones || '';
             document.getElementById('banos').value = inmuebleActual.banos || '';
-            document.getElementById('precio').value = inmuebleActual.precio || '';
+            document.getElementById('precio').value = formatearValorMoneda(inmuebleActual.precio || '');
             document.getElementById('descripcion').value = inmuebleActual.descripcion || '';
             document.getElementById('latitud').value = inmuebleActual.latitud || '';
             document.getElementById('longitud').value = inmuebleActual.longitud || '';
@@ -334,8 +480,7 @@ async function cargarMediosEnModal(inmuebleId) {
     galeria.innerHTML = '<p>Cargando medios...</p>';
 
     try {
-        const response = await fetch(`${API_URL}/inmuebles/${inmuebleId}/medios`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const response = await authFetch(`${API_URL}/inmuebles/${inmuebleId}/medios`, {
         });
 
         const data = await response.json();
@@ -394,11 +539,10 @@ async function cargarMediosEnModal(inmuebleId) {
 // ============================================
 async function marcarImagenPrincipal(inmuebleId, mediaId) {
     try {
-        const response = await fetch(
+        const response = await authFetch(
             `${API_URL}/inmuebles/${inmuebleId}/medios/${mediaId}/principal`,
             {
                 method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}` }
             }
         );
 
@@ -425,9 +569,8 @@ async function marcarImagenPrincipal(inmuebleId, mediaId) {
 // ============================================
 async function eliminarMedio(inmuebleId, mediaId) {
     try {
-        const response = await fetch(`${API_URL}/inmuebles/${inmuebleId}/medios/${mediaId}`, {
+        const response = await authFetch(`${API_URL}/inmuebles/${inmuebleId}/medios/${mediaId}`, {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
         });
 
         const data = await response.json();
@@ -463,9 +606,8 @@ document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () 
     document.getElementById('confirmDeleteModal').classList.remove('active');
 
     try {
-        const response = await fetch(`${API_URL}/inmuebles/${id}`, {
+        const response = await authFetch(`${API_URL}/inmuebles/${id}`, {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
         });
 
         const data = await response.json();
@@ -519,6 +661,8 @@ if (formInmueble) {
                     inmuebleData[key] = value;
                 }
             }
+
+            inmuebleData.precio = limpiarValorMoneda(inmuebleData.precio).replace(',', '.');
             
             // Características
             const caracteristicas = {};
@@ -533,11 +677,10 @@ if (formInmueble) {
             const method = id ? 'PUT' : 'POST';
             
             // 2. Guardar inmueble (crear o actualizar)
-            const response = await fetch(url, {
+            const response = await authFetch(url, {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(inmuebleData)
             });
@@ -545,7 +688,10 @@ if (formInmueble) {
             const data = await response.json();
             
             if (!data.success) {
-                showAlert(data.message || 'Error al guardar inmueble', 'error');
+                const validationMessage = Array.isArray(data.errors) && data.errors.length
+                    ? data.errors[0].msg
+                    : null;
+                showAlert(validationMessage || data.message || 'Error al guardar inmueble', 'error');
                 return;
             }
 
@@ -559,10 +705,9 @@ if (formInmueble) {
                     mediosFormData.append('medios', file);
                 }
 
-                const uploadResponse = await fetch(`${API_URL}/inmuebles/${inmuebleId}/upload-medios`, {
+                const uploadResponse = await authFetch(`${API_URL}/inmuebles/${inmuebleId}/upload-medios`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${token}`
                     },
                     body: mediosFormData
                 });
@@ -594,6 +739,68 @@ if (formInmueble) {
     });
 }
 
+formTransaccion?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const btnText = btnGuardarTransaccion?.querySelector('.btn-text');
+    const btnLoader = btnGuardarTransaccion?.querySelector('.btn-loader');
+
+    if (btnGuardarTransaccion) btnGuardarTransaccion.disabled = true;
+    if (btnText) btnText.style.display = 'none';
+    if (btnLoader) btnLoader.style.display = 'inline-flex';
+
+    try {
+        const inmuebleId = document.getElementById('transaccionInmuebleId').value;
+        const payload = {
+            cliente_id: Number(transaccionClienteId.value),
+            estado_id: Number(transaccionEstadoId.value),
+            fecha_transaccion: transaccionFecha.value,
+            valor_transaccion: limpiarValorMoneda(transaccionValor.value).replace(',', '.'),
+            notas_transaccion: document.getElementById('transaccionNotas').value.trim()
+        };
+
+        if (!payload.valor_transaccion || Number(payload.valor_transaccion) <= 0) {
+            showAlert('Ingresa un valor de transacción válido', 'error');
+            return;
+        }
+
+        if (Number(payload.valor_transaccion) > MAX_VALOR_TRANSACCION) {
+            showAlert('El valor de la transacción excede el máximo permitido', 'error');
+            return;
+        }
+
+        const response = await authFetch(`${API_URL}/inmuebles/${inmuebleId}/transaccion`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            const validationMessage = Array.isArray(data.errors) && data.errors.length
+                ? data.errors[0].msg
+                : null;
+            showAlert(validationMessage || data.details || data.message || 'Error al registrar transacción', 'error');
+            return;
+        }
+
+        closeModal(modalTransaccion);
+        formTransaccion.reset();
+        showSuccessModal('Transacción registrada exitosamente');
+        cargarInmuebles(paginaActual);
+    } catch (error) {
+        console.error('Error al registrar transacción:', error);
+        showAlert('Error al registrar transacción', 'error');
+    } finally {
+        if (btnGuardarTransaccion) btnGuardarTransaccion.disabled = false;
+        if (btnText) btnText.style.display = 'inline';
+        if (btnLoader) btnLoader.style.display = 'none';
+    }
+});
+
 // ============================================
 // FILTRAR
 // ============================================
@@ -607,9 +814,15 @@ btnFiltrar?.addEventListener('click', () => {
 // ============================================
 closeModalInmueble?.addEventListener('click', () => modalInmueble.classList.remove('active'));
 btnCancelarInmueble?.addEventListener('click', () => modalInmueble.classList.remove('active'));
+closeModalTransaccion?.addEventListener('click', () => closeModal(modalTransaccion));
+btnCancelarTransaccion?.addEventListener('click', () => closeModal(modalTransaccion));
 
 modalInmueble?.addEventListener('click', (e) => {
     if (e.target === modalInmueble) modalInmueble.classList.remove('active');
+});
+
+modalTransaccion?.addEventListener('click', (e) => {
+    if (e.target === modalTransaccion) closeModal(modalTransaccion);
 });
 
 // ============================================
@@ -668,6 +881,8 @@ successModal?.addEventListener('click', (e) => {
 // INICIALIZAR
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
+    inicializarFormatoPrecio();
+    inicializarFormatoValorTransaccion();
     cargarCatalogos();
     
     const inmuebleSection = document.getElementById('section-inmuebles');
@@ -680,6 +895,19 @@ document.querySelectorAll('.nav-item[data-section="inmuebles"]').forEach(item =>
     item.addEventListener('click', () => {
         setTimeout(() => cargarInmuebles(), 100);
     });
+});
+
+window.addEventListener('realtime:inmueble-changed', (event) => {
+    const detalle = event.detail || {};
+
+    if (inmueblesTableBody) {
+        cargarInmuebles(paginaActual);
+    }
+
+    const inmuebleId = document.getElementById('inmuebleId')?.value;
+    if (modalInmueble?.classList.contains('active') && inmuebleId && Number(inmuebleId) === Number(detalle.inmuebleId)) {
+        cargarMediosEnModal(inmuebleId);
+    }
 });
 
 // ============================================
@@ -703,3 +931,7 @@ document.addEventListener('mouseout', e => {
 // Hacer funciones globales para botones inline
 window.editarInmueble = editarInmueble;
 window.eliminarInmueble = eliminarInmueble;
+
+
+
+

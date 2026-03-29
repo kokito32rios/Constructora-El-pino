@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const clientesController = require('../controllers/clientes.controller');
 const authMiddleware = require('../middleware/auth.middleware');
+const { requireAdmin } = require('../middleware/auth.middleware');
 const { body, param } = require('express-validator');
 
 // ============================================
@@ -50,42 +51,42 @@ const idValidation = [
  * Obtener todos los clientes con paginación y búsqueda
  * Query params: search, page, limit
  */
-router.get('/', authMiddleware, clientesController.getClientes);
+router.get('/', authMiddleware, requireAdmin, clientesController.getClientes);
 
 /**
  * GET /api/clientes/:id
  * Obtener detalle de un cliente específico
  */
-router.get('/:id', authMiddleware, idValidation, clientesController.getClienteById);
+router.get('/:id', authMiddleware, requireAdmin, idValidation, clientesController.getClienteById);
 
 /**
  * GET /api/clientes/cedula/:cedula
  * Buscar cliente por cédula
  */
-router.get('/cedula/:cedula', authMiddleware, clientesController.getClienteByCedula);
+router.get('/cedula/:cedula', authMiddleware, requireAdmin, clientesController.getClienteByCedula);
 
 /**
  * POST /api/clientes
  * Crear nuevo cliente
  */
-router.post('/', authMiddleware, createClienteValidation, clientesController.createCliente);
+router.post('/', authMiddleware, requireAdmin, createClienteValidation, clientesController.createCliente);
 
 /**
  * PUT /api/clientes/:id
  * Actualizar cliente existente
  */
-router.put('/:id', authMiddleware, updateClienteValidation, clientesController.updateCliente);
+router.put('/:id', authMiddleware, requireAdmin, updateClienteValidation, clientesController.updateCliente);
 
 /**
  * DELETE /api/clientes/:id
  * Eliminar cliente
  */
-router.delete('/:id', authMiddleware, idValidation, clientesController.deleteCliente);
+router.delete('/:id', authMiddleware, requireAdmin, idValidation, clientesController.deleteCliente);
 
 /**
  * GET /api/clientes/:id/transacciones
  * Obtener historial de transacciones de un cliente
  */
-router.get('/:id/transacciones', authMiddleware, idValidation, clientesController.getTransaccionesCliente);
+router.get('/:id/transacciones', authMiddleware, requireAdmin, idValidation, clientesController.getTransaccionesCliente);
 
 module.exports = router;

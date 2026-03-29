@@ -4,6 +4,7 @@
 
 const { validationResult } = require('express-validator');
 const { pool } = require('../config/database');
+const { emitAdminNotification } = require('../config/realtime');
 
 // ============================================
 // OBTENER TODOS LOS CLIENTES
@@ -48,8 +49,7 @@ exports.getClientes = async (req, res) => {
         console.error('Error en getClientes:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener clientes',
-            error: error.message
+            message: 'Error al obtener clientes'
         });
     }
 };
@@ -79,8 +79,7 @@ exports.getClienteById = async (req, res) => {
         console.error('Error en getClienteById:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener cliente',
-            error: error.message
+            message: 'Error al obtener cliente'
         });
     }
 };
@@ -110,8 +109,7 @@ exports.getClienteByCedula = async (req, res) => {
         console.error('Error en getClienteByCedula:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al buscar cliente',
-            error: error.message
+            message: 'Error al buscar cliente'
         });
     }
 };
@@ -152,13 +150,19 @@ exports.createCliente = async (req, res) => {
             message: 'Cliente creado exitosamente',
             data: nuevoCliente[0]
         });
+        emitAdminNotification({
+            type: 'cliente',
+            action: 'created',
+            title: 'Cliente creado',
+            message: `${req.user?.nombre || 'Un administrador'} creó el cliente ${nuevoCliente[0].nombre} (${nuevoCliente[0].cedula}).`,
+            resourceId: nuevoCliente[0].id
+        });
 
     } catch (error) {
         console.error('Error en createCliente:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al crear cliente',
-            error: error.message
+            message: 'Error al crear cliente'
         });
     }
 };
@@ -212,13 +216,19 @@ exports.updateCliente = async (req, res) => {
             message: 'Cliente actualizado exitosamente',
             data: clienteActualizado[0]
         });
+        emitAdminNotification({
+            type: 'cliente',
+            action: 'updated',
+            title: 'Cliente actualizado',
+            message: `${req.user?.nombre || 'Un administrador'} actualizó el cliente ${clienteActualizado[0].nombre} (${clienteActualizado[0].cedula}).`,
+            resourceId: clienteActualizado[0].id
+        });
 
     } catch (error) {
         console.error('Error en updateCliente:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al actualizar cliente',
-            error: error.message
+            message: 'Error al actualizar cliente'
         });
     }
 };
@@ -256,13 +266,19 @@ exports.deleteCliente = async (req, res) => {
             success: true,
             message: 'Cliente eliminado exitosamente'
         });
+        emitAdminNotification({
+            type: 'cliente',
+            action: 'deleted',
+            title: 'Cliente eliminado',
+            message: `${req.user?.nombre || 'Un administrador'} eliminó el cliente ${id}.`,
+            resourceId: Number(id)
+        });
 
     } catch (error) {
         console.error('Error en deleteCliente:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al eliminar cliente',
-            error: error.message
+            message: 'Error al eliminar cliente'
         });
     }
 };
@@ -300,8 +316,7 @@ exports.getTransaccionesCliente = async (req, res) => {
         console.error('Error en getTransaccionesCliente:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener transacciones',
-            error: error.message
+            message: 'Error al obtener transacciones'
         });
     }
 };

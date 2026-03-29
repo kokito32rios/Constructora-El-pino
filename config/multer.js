@@ -3,7 +3,6 @@
 // ============================================
 
 const multer = require('multer');
-const path = require('path');
 const fs = require('fs');
 
 // Tipos de archivos permitidos
@@ -13,32 +12,7 @@ const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/mpeg', 'video/quicktime', 'vide
 // Tamaño máximo de archivo (10MB por defecto)
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE) || 10485760;
 
-// Configuración de almacenamiento
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Crear carpeta por inmueble: uploads/{inmueble_id}/
-    const inmuebleId = req.params.id || 'temp';
-    const uploadPath = path.join(__dirname, '..', 'uploads', inmuebleId.toString());
-    
-    // Crear directorio si no existe
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-    
-    cb(null, uploadPath);
-  },
-  
-  filename: (req, file, cb) => {
-    // Generar nombre único: timestamp-random-original.ext
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    const baseName = path.basename(file.originalname, ext)
-      .replace(/[^a-z0-9]/gi, '_')
-      .toLowerCase();
-    
-    cb(null, `${baseName}-${uniqueSuffix}${ext}`);
-  }
-});
+const storage = multer.memoryStorage();
 
 // Filtro de archivos
 const fileFilter = (req, file, cb) => {

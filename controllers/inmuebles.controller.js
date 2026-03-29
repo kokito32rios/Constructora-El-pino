@@ -5,7 +5,86 @@
 const { validationResult } = require('express-validator');
 const { pool } = require('../config/database');
 const { deleteInmuebleFolder, deleteFile } = require('../config/multer');
+const { emitAdminNotification, emitInmuebleChange } = require('../config/realtime');
+const { uploadBufferToCloudinary, deleteFromCloudinary } = require('../config/cloudinary');
 const path = require('path');
+const MAX_TRANSACTION_VALUE = 9999999999999.99;
+
+function esAdministrador(user) {
+    if (!user) {
+        return false;
+    }
+
+    const rolNombre = String(user.rol_nombre || '').toLowerCase();
+    return user.rol_id === 1 || rolNombre.includes('admin');
+}
+
+async function obtenerInmuebleProtegido(id, user) {
+    const query = esAdministrador(user)
+        ? 'SELECT id, cedula_usuario FROM inmuebles WHERE id = ?'
+        : 'SELECT id, cedula_usuario FROM inmuebles WHERE id = ? AND cedula_usuario = ?';
+    const params = esAdministrador(user) ? [id] : [id, user.cedula];
+    const [rows] = await pool.query(query, params);
+    return rows[0] || null;
+}
+
+async function obtenerResumenInmueble(id) {
+    const [rows] = await pool.query(
+        `SELECT 
+            i.id,
+            i.direccion,
+            ciudad.nombre AS ciudad,
+            tv.nombre AS tipo_vivienda
+        FROM inmuebles i
+        INNER JOIN tipos_vivienda tv ON i.tipo_vivienda_id = tv.id
+        INNER JOIN ciudades ciudad ON i.ciudad_id = ciudad.id
+        WHERE i.id = ?`,
+        [id]
+    );
+
+    return rows[0] || null;
+}
+
+function formatearTituloInmueble(resumen) {
+    if (!resumen) {
+        return 'un inmueble';
+    }
+
+    return `${resumen.tipo_vivienda} en ${resumen.direccion}, ${resumen.ciudad}`;
+}
+
+function parseOptionalDecimal(value) {
+    if (value === undefined || value === null || value === '') {
+        return null;
+    }
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function eliminarMedioPersistido(medio) {
+    if (!medio) {
+        return;
+    }
+
+    if (medio.public_id) {
+        try {
+            await deleteFromCloudinary(medio.public_id, medio.tipo);
+        } catch (error) {
+            console.error('Error al eliminar recurso de Cloudinary:', error);
+        }
+        return;
+    }
+
+    if (medio.url && medio.url.startsWith('/uploads/')) {
+        try {
+            const filePath = path.join(__dirname, '..', medio.url);
+            await deleteFile(filePath);
+        } catch (error) {
+            console.error('Error al eliminar archivo local:', error);
+        }
+    }
+}
 
 // ============================================
 // OBTENER TODOS LOS INMUEBLES CON FILTROS
@@ -37,8 +116,11 @@ exports.getInmuebles = async (req, res) => {
     ciudad.nombre AS ciudad,
     ciudad.departamento,
     u.nombre AS usuario_nombre,
+    cli.id AS cliente_id,
     cli.nombre AS cliente_nombre,
     cli.telefono AS cliente_telefono,
+    i.fecha_transaccion,
+    i.valor_transaccion,
     m.url AS imagen_principal
 FROM inmuebles i
 INNER JOIN tipos_vivienda tv ON i.tipo_vivienda_id = tv.id
@@ -139,8 +221,7 @@ WHERE 1 = 1
         console.error('Error en getInmuebles:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener inmuebles',
-            error: error.message
+            message: 'Error al obtener inmuebles'
         });
     }
 };
@@ -215,8 +296,7 @@ exports.getInmuebleById = async (req, res) => {
         console.error('Error en getInmuebleById:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener inmueble',
-            error: error.message
+            message: 'Error al obtener inmueble'
         });
     }
 };
@@ -253,6 +333,8 @@ exports.createInmueble = async (req, res) => {
         } = req.body;
 
         const cedula_usuario = req.user.cedula;
+        const latitudNormalizada = parseOptionalDecimal(latitud);
+        const longitudNormalizada = parseOptionalDecimal(longitud);
 
         // Validar y parsear características JSON
         let caracteristicasJSON = null;
@@ -278,7 +360,7 @@ exports.createInmueble = async (req, res) => {
             [
                 tipo_vivienda_id, medidas, tipo_transaccion_id, estado_id, precio,
                 condicion_id, direccion, barrio, ciudad_id, habitaciones, banos,
-                descripcion, JSON.stringify(caracteristicasJSON), latitud, longitud, cedula_usuario
+                descripcion, JSON.stringify(caracteristicasJSON), latitudNormalizada, longitudNormalizada, cedula_usuario
             ]
         );
 
@@ -301,6 +383,17 @@ exports.createInmueble = async (req, res) => {
             [resultado.insertId]
         );
 
+        emitInmuebleChange('created', resultado.insertId, {
+            actorCedula: req.user?.cedula
+        });
+        emitAdminNotification({
+            type: 'inmueble',
+            action: 'created',
+            title: 'Nuevo inmueble',
+            message: `${req.user?.nombre || 'Un usuario'} creó el inmueble ${formatearTituloInmueble(nuevoInmueble[0])}.`,
+            resourceId: resultado.insertId
+        });
+
         res.status(201).json({
             success: true,
             message: 'Inmueble creado exitosamente',
@@ -311,8 +404,7 @@ exports.createInmueble = async (req, res) => {
         console.error('Error en createInmueble:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al crear inmueble',
-            error: error.message
+            message: 'Error al crear inmueble'
         });
     }
 };
@@ -349,14 +441,16 @@ exports.updateInmueble = async (req, res) => {
             longitud
         } = req.body;
 
-        // Verificar que el inmueble existe
-        const [existe] = await pool.query('SELECT id FROM inmuebles WHERE id = ?', [id]);
-        if (existe.length === 0) {
+        const inmuebleProtegido = await obtenerInmuebleProtegido(id, req.user);
+        if (!inmuebleProtegido) {
             return res.status(404).json({
                 success: false,
-                message: 'Inmueble no encontrado'
+                message: 'Inmueble no encontrado o sin permisos'
             });
         }
+
+        const latitudNormalizada = parseOptionalDecimal(latitud);
+        const longitudNormalizada = parseOptionalDecimal(longitud);
 
         // Validar y parsear características JSON
         let caracteristicasJSON = null;
@@ -383,7 +477,7 @@ exports.updateInmueble = async (req, res) => {
             [
                 tipo_vivienda_id, medidas, tipo_transaccion_id, estado_id, precio,
                 condicion_id, direccion, barrio, ciudad_id, habitaciones, banos,
-                descripcion, JSON.stringify(caracteristicasJSON), latitud, longitud, id
+                descripcion, JSON.stringify(caracteristicasJSON), latitudNormalizada, longitudNormalizada, id
             ]
         );
 
@@ -406,6 +500,17 @@ exports.updateInmueble = async (req, res) => {
             [id]
         );
 
+        emitInmuebleChange('updated', Number(id), {
+            actorCedula: req.user?.cedula
+        });
+        emitAdminNotification({
+            type: 'inmueble',
+            action: 'updated',
+            title: 'Inmueble actualizado',
+            message: `${req.user?.nombre || 'Un usuario'} actualizó el inmueble ${formatearTituloInmueble(inmuebleActualizado[0])}.`,
+            resourceId: Number(id)
+        });
+
         res.json({
             success: true,
             message: 'Inmueble actualizado exitosamente',
@@ -416,8 +521,7 @@ exports.updateInmueble = async (req, res) => {
         console.error('Error en updateInmueble:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al actualizar inmueble',
-            error: error.message
+            message: 'Error al actualizar inmueble'
         });
     }
 };
@@ -437,41 +541,50 @@ exports.deleteInmueble = async (req, res) => {
 
         const { id } = req.params;
 
-        // Verificar que existe
-        const [existe] = await pool.query('SELECT id FROM inmuebles WHERE id = ?', [id]);
-        if (existe.length === 0) {
+        const inmuebleProtegido = await obtenerInmuebleProtegido(id, req.user);
+        if (!inmuebleProtegido) {
             return res.status(404).json({
                 success: false,
-                message: 'Inmueble no encontrado'
+                message: 'Inmueble no encontrado o sin permisos'
             });
         }
 
+        const resumenInmueble = await obtenerResumenInmueble(id);
+
         // Obtener medios para borrar archivos físicos
 const [medios] = await pool.query(
-    'SELECT url FROM medios WHERE inmueble_id = ?',
+    'SELECT url, public_id, tipo FROM medios WHERE inmueble_id = ?',
     [id]
 );
 
-// Eliminar archivos físicos uno a uno
+// Eliminar recursos asociados uno a uno
 for (const medio of medios) {
-    try {
-        const filePath = path.join(__dirname, '..', medio.url);
-        await deleteFile(filePath);
-    } catch (error) {
-        console.error('Error al eliminar archivo:', error);
-    }
+    await eliminarMedioPersistido(medio);
 }
 
 
         // Eliminar inmueble (los medios se eliminan por CASCADE)
         await pool.query('DELETE FROM inmuebles WHERE id = ?', [id]);
 
-        // Eliminar carpeta de archivos
-        try {
-            await deleteInmuebleFolder(id);
-        } catch (error) {
-            console.error('Error al eliminar carpeta:', error);
+        // Eliminar carpeta de archivos si quedaron medios locales heredados
+        if (medios.some((medio) => medio.url && medio.url.startsWith('/uploads/'))) {
+            try {
+                await deleteInmuebleFolder(id);
+            } catch (error) {
+                console.error('Error al eliminar carpeta:', error);
+            }
         }
+
+        emitInmuebleChange('deleted', Number(id), {
+            actorCedula: req.user?.cedula
+        });
+        emitAdminNotification({
+            type: 'inmueble',
+            action: 'deleted',
+            title: 'Inmueble eliminado',
+            message: `${req.user?.nombre || 'Un usuario'} eliminó el inmueble ${formatearTituloInmueble(resumenInmueble)}.`,
+            resourceId: Number(id)
+        });
 
         res.json({
             success: true,
@@ -482,8 +595,7 @@ for (const medio of medios) {
         console.error('Error en deleteInmueble:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al eliminar inmueble',
-            error: error.message
+            message: 'Error al eliminar inmueble'
         });
     }
 };
@@ -492,12 +604,16 @@ for (const medio of medios) {
 // SUBIR MEDIOS (IMÁGENES/VIDEOS)
 // ============================================
 exports.uploadMedias = async (req, res) => {
-    console.log('[uploadMedias] Iniciando subida para inmueble ID:', req.params.id);
-    console.log('[uploadMedias] Archivos recibidos:', req.files ? req.files.length : 'NINGUNO');
-    console.log('[uploadMedias] Body recibido:', req.body);
-
     try {
         const { id } = req.params;
+        const inmuebleProtegido = await obtenerInmuebleProtegido(id, req.user);
+
+        if (!inmuebleProtegido) {
+            return res.status(404).json({
+                success: false,
+                message: 'Inmueble no encontrado o sin permisos'
+            });
+        }
 
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({
@@ -507,30 +623,39 @@ exports.uploadMedias = async (req, res) => {
         }
 
         const medios = [];
+        const resumenInmueble = await obtenerResumenInmueble(id);
 
         for (const file of req.files) {
-            console.log('[uploadMedias] Procesando archivo:', {
-                originalname: file.originalname,
-                mimetype: file.mimetype,
-                filename: file.filename,
-                size: file.size
-            });
-
-            const url = `/uploads/${id}/${file.filename}`;
+            const uploadResult = await uploadBufferToCloudinary(file, id);
+            const url = uploadResult.secure_url;
             const tipo = file.mimetype.startsWith('image') ? 'imagen' : 'video';
+            const publicId = uploadResult.public_id;
 
             const [result] = await pool.query(
-                `INSERT INTO medios (inmueble_id, tipo, url)
-                 VALUES (?, ?, ?)`,
-                [id, tipo, url]
+                `INSERT INTO medios (inmueble_id, tipo, url, public_id)
+                 VALUES (?, ?, ?, ?)`,
+                [id, tipo, url, publicId]
             );
 
             medios.push({
                 id: result.insertId,
                 url,
-                tipo
+                tipo,
+                public_id: publicId
             });
         }
+
+        emitInmuebleChange('media_uploaded', Number(id), {
+            actorCedula: req.user?.cedula,
+            totalMedios: medios.length
+        });
+        emitAdminNotification({
+            type: 'inmueble',
+            action: 'media_uploaded',
+            title: 'Medios agregados',
+            message: `${req.user?.nombre || 'Un usuario'} subió ${medios.length} archivo(s) al inmueble ${formatearTituloInmueble(resumenInmueble)}.`,
+            resourceId: Number(id)
+        });
 
         res.json({
             success: true,
@@ -542,8 +667,7 @@ exports.uploadMedias = async (req, res) => {
         console.error('[uploadMedias] ERROR GRAVE:', error);
         res.status(500).json({
             success: false,
-            message: 'Error interno al subir medios',
-            error: error.message
+            message: 'Error interno al subir medios'
         });
     }
 };
@@ -569,8 +693,7 @@ exports.getInmuebleMedias = async (req, res) => {
         console.error('Error en getInmuebleMedias:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener medios',
-            error: error.message
+            message: 'Error al obtener medios'
         });
     }
 };
@@ -581,6 +704,15 @@ exports.getInmuebleMedias = async (req, res) => {
 exports.setImagenPrincipal = async (req, res) => {
     try {
         const { id, mediaId } = req.params;
+        const inmuebleProtegido = await obtenerInmuebleProtegido(id, req.user);
+
+        if (!inmuebleProtegido) {
+            return res.status(404).json({
+                success: false,
+                message: 'Inmueble no encontrado o sin permisos'
+            });
+        }
+        const resumenInmueble = await obtenerResumenInmueble(id);
 
         // Verificar que el medio pertenece al inmueble
         const [medio] = await pool.query(
@@ -607,6 +739,18 @@ exports.setImagenPrincipal = async (req, res) => {
             [mediaId]
         );
 
+        emitInmuebleChange('media_primary_updated', Number(id), {
+            actorCedula: req.user?.cedula,
+            mediaId: Number(mediaId)
+        });
+        emitAdminNotification({
+            type: 'inmueble',
+            action: 'media_primary_updated',
+            title: 'Imagen principal actualizada',
+            message: `${req.user?.nombre || 'Un usuario'} cambió la imagen principal del inmueble ${formatearTituloInmueble(resumenInmueble)}.`,
+            resourceId: Number(id)
+        });
+
         res.json({
             success: true,
             message: 'Imagen principal actualizada'
@@ -616,8 +760,7 @@ exports.setImagenPrincipal = async (req, res) => {
         console.error('Error en setImagenPrincipal:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al establecer imagen principal',
-            error: error.message
+            message: 'Error al establecer imagen principal'
         });
     }
 };
@@ -629,6 +772,15 @@ exports.reordenarMedias = async (req, res) => {
     try {
         const { id } = req.params;
         const { orden } = req.body; // Array de IDs en el orden deseado
+        const inmuebleProtegido = await obtenerInmuebleProtegido(id, req.user);
+
+        if (!inmuebleProtegido) {
+            return res.status(404).json({
+                success: false,
+                message: 'Inmueble no encontrado o sin permisos'
+            });
+        }
+        const resumenInmueble = await obtenerResumenInmueble(id);
 
         if (!Array.isArray(orden)) {
             return res.status(400).json({
@@ -645,6 +797,17 @@ exports.reordenarMedias = async (req, res) => {
             );
         }
 
+        emitInmuebleChange('media_reordered', Number(id), {
+            actorCedula: req.user?.cedula
+        });
+        emitAdminNotification({
+            type: 'inmueble',
+            action: 'media_reordered',
+            title: 'Galería reordenada',
+            message: `${req.user?.nombre || 'Un usuario'} reorganizó los medios del inmueble ${formatearTituloInmueble(resumenInmueble)}.`,
+            resourceId: Number(id)
+        });
+
         res.json({
             success: true,
             message: 'Medios reordenados exitosamente'
@@ -654,8 +817,7 @@ exports.reordenarMedias = async (req, res) => {
         console.error('Error en reordenarMedias:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al reordenar medios',
-            error: error.message
+            message: 'Error al reordenar medios'
         });
     }
 };
@@ -666,10 +828,19 @@ exports.reordenarMedias = async (req, res) => {
 exports.deleteMedia = async (req, res) => {
     try {
         const { id, mediaId } = req.params;
+        const inmuebleProtegido = await obtenerInmuebleProtegido(id, req.user);
+
+        if (!inmuebleProtegido) {
+            return res.status(404).json({
+                success: false,
+                message: 'Inmueble no encontrado o sin permisos'
+            });
+        }
+        const resumenInmueble = await obtenerResumenInmueble(id);
 
         // Obtener información del medio
         const [medios] = await pool.query(
-            'SELECT url FROM medios WHERE id = ? AND inmueble_id = ?',
+            'SELECT url, public_id, tipo FROM medios WHERE id = ? AND inmueble_id = ?',
             [mediaId, id]
         );
 
@@ -683,13 +854,19 @@ exports.deleteMedia = async (req, res) => {
         // Eliminar registro de BD
         await pool.query('DELETE FROM medios WHERE id = ?', [mediaId]);
 
-        // Eliminar archivo físico
-        try {
-            const filePath = path.join(__dirname, '..', medios[0].url);
-            await deleteFile(filePath);
-        } catch (error) {
-            console.error('Error al eliminar archivo:', error);
-        }
+        await eliminarMedioPersistido(medios[0]);
+
+        emitInmuebleChange('media_deleted', Number(id), {
+            actorCedula: req.user?.cedula,
+            mediaId: Number(mediaId)
+        });
+        emitAdminNotification({
+            type: 'inmueble',
+            action: 'media_deleted',
+            title: 'Medio eliminado',
+            message: `${req.user?.nombre || 'Un usuario'} eliminó un medio del inmueble ${formatearTituloInmueble(resumenInmueble)}.`,
+            resourceId: Number(id)
+        });
 
         res.json({
             success: true,
@@ -700,8 +877,7 @@ exports.deleteMedia = async (req, res) => {
         console.error('Error en deleteMedia:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al eliminar medio',
-            error: error.message
+            message: 'Error al eliminar medio'
         });
     }
 };
@@ -728,12 +904,27 @@ exports.registrarTransaccion = async (req, res) => {
             notas_transaccion
         } = req.body;
 
-        // Verificar que el inmueble existe
-        const [inmueble] = await pool.query('SELECT id FROM inmuebles WHERE id = ?', [id]);
-        if (inmueble.length === 0) {
+        const inmuebleProtegido = await obtenerInmuebleProtegido(id, req.user);
+        if (!inmuebleProtegido) {
             return res.status(404).json({
                 success: false,
-                message: 'Inmueble no encontrado'
+                message: 'Inmueble no encontrado o sin permisos'
+            });
+        }
+        const resumenInmueble = await obtenerResumenInmueble(id);
+        const valorTransaccionNormalizado = parseOptionalDecimal(valor_transaccion);
+
+        if (valorTransaccionNormalizado === null || valorTransaccionNormalizado <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'El valor de la transacción debe ser mayor a 0'
+            });
+        }
+
+        if (valorTransaccionNormalizado > MAX_TRANSACTION_VALUE) {
+            return res.status(400).json({
+                success: false,
+                message: 'El valor de la transacción excede el máximo permitido'
             });
         }
 
@@ -746,6 +937,14 @@ exports.registrarTransaccion = async (req, res) => {
             });
         }
 
+        const [estado] = await pool.query('SELECT id, nombre FROM estados_inmueble WHERE id = ?', [estado_id]);
+        if (estado.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Estado no encontrado'
+            });
+        }
+
         // Actualizar inmueble con datos de transacción
         await pool.query(
             `UPDATE inmuebles SET 
@@ -755,8 +954,20 @@ exports.registrarTransaccion = async (req, res) => {
                 valor_transaccion = ?,
                 notas_transaccion = ?
             WHERE id = ?`,
-            [cliente_id, estado_id, fecha_transaccion, valor_transaccion, notas_transaccion, id]
+            [cliente_id, estado_id, fecha_transaccion, valorTransaccionNormalizado, notas_transaccion || null, id]
         );
+
+        emitInmuebleChange('transaction_registered', Number(id), {
+            actorCedula: req.user?.cedula,
+            clienteId: Number(cliente_id)
+        });
+        emitAdminNotification({
+            type: 'inmueble',
+            action: 'transaction_registered',
+            title: 'Transacción registrada',
+            message: `${req.user?.nombre || 'Un usuario'} registró una transacción para el inmueble ${formatearTituloInmueble(resumenInmueble)}.`,
+            resourceId: Number(id)
+        });
 
         res.json({
             success: true,
@@ -768,7 +979,9 @@ exports.registrarTransaccion = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error al registrar transacción',
-            error: error.message
+            details: process.env.NODE_ENV !== 'production'
+                ? (error.sqlMessage || error.message)
+                : undefined
         });
     }
 };

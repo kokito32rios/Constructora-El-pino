@@ -171,7 +171,7 @@ function crearTarjetaPropiedad(propiedad) {
     `;
     
     // Imagen principal
-    const imagenPrincipal = propiedad.imagen_principal || '/public/images/placeholder.jpg';
+    const imagenPrincipal = propiedad.imagen_principal || '/images/placeholder.jpg';
     
     card.innerHTML = `
         <div style="position: relative; height: 250px; overflow: hidden;">
@@ -262,7 +262,7 @@ function formatearPrecio(precio) {
 // VER DETALLE DE PROPIEDAD
 // ============================================
 function verDetalle(id) {
-    window.location.href = `/views/detalle.html?id=${id}`;
+    window.location.href = `/detalle.html?id=${id}`;
 }
 
 // ============================================
@@ -282,7 +282,7 @@ if (searchForm) {
             }
         }
         
-        window.location.href = `/views/catalogo.html?${params.toString()}`;
+        window.location.href = `/catalogo.html?${params.toString()}`;
     });
 }
 

@@ -33,18 +33,12 @@ body {
     background: var(--white-soft);
 }
 
-/* ============================================
-   CONTENEDOR PRINCIPAL
-   ============================================ */
 .login-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
     min-height: 100vh;
 }
 
-/* ============================================
-   LADO IZQUIERDO - BRANDING
-   ============================================ */
 .login-branding {
     position: relative;
     background: linear-gradient(135deg, var(--dark-primary) 0%, var(--dark-secondary) 100%);
@@ -59,10 +53,7 @@ body {
 
 .branding-overlay {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     background: linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(45, 45, 45, 0.90) 100%);
 }
 
@@ -128,7 +119,7 @@ body {
     background-clip: text;
 }
 
-.branding-content>p {
+.branding-content > p {
     font-size: 1.125rem;
     color: var(--gray-lighter);
     line-height: 1.7;
@@ -154,9 +145,6 @@ body {
     flex-shrink: 0;
 }
 
-/* ============================================
-   LADO DERECHO - FORMULARIO
-   ============================================ */
 .login-form-section {
     background: var(--white);
     padding: 3rem;
@@ -187,9 +175,6 @@ body {
     font-size: 0.95rem;
 }
 
-/* ============================================
-   FORMULARIO
-   ============================================ */
 .login-form {
     display: flex;
     flex-direction: column;
@@ -215,7 +200,8 @@ body {
     color: var(--gold-primary);
 }
 
-.form-group input {
+.form-group input,
+.captcha-input {
     padding: 1rem 1.25rem;
     border: 2px solid var(--gray-lighter);
     border-radius: 10px;
@@ -223,9 +209,11 @@ body {
     font-size: 1rem;
     transition: all 0.3s ease;
     background: var(--white);
+    width: 100%;
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.captcha-input:focus {
     outline: none;
     border-color: var(--gold-primary);
     box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.1);
@@ -256,6 +244,82 @@ body {
 
 .toggle-password:hover {
     color: var(--gold-primary);
+}
+
+.captcha-panel {
+    background: #1f2937;
+    border-radius: 18px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+}
+
+.captcha-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #cbd5e1;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.captcha-header::before {
+    content: '??';
+    font-size: 0.95rem;
+}
+
+.captcha-frame {
+    display: grid;
+    grid-template-columns: 1fr 52px;
+    gap: 0.75rem;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.45);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 14px;
+    padding: 0.5rem;
+}
+
+.captcha-image {
+    width: 100%;
+    height: 60px;
+    border-radius: 10px;
+    background: #111827;
+    display: block;
+}
+
+.captcha-refresh {
+    height: 52px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 12px;
+    background: rgba(51, 65, 85, 0.88);
+    color: #e2e8f0;
+    font-size: 1.3rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.captcha-refresh:hover:not(:disabled) {
+    background: rgba(71, 85, 105, 0.95);
+}
+
+.captcha-refresh:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.captcha-input {
+    background: #111827;
+    color: #e2e8f0;
+    border-color: rgba(148, 163, 184, 0.22);
+    text-align: center;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+}
+
+.captcha-input::placeholder {
+    color: #94a3b8;
 }
 
 .form-options {
@@ -325,13 +389,8 @@ body {
 }
 
 @keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 .form-footer {
@@ -357,9 +416,6 @@ body {
     opacity: 0.7;
 }
 
-/* ============================================
-   MODALES
-   ============================================ */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -451,21 +507,9 @@ body {
     animation: float 3s ease-in-out infinite;
 }
 
-.modal-icon.error {
-    background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
-    color: var(--white);
-}
-
 @keyframes float {
-
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-
-    50% {
-        transform: translateY(-10px);
-    }
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
 }
 
 .modal-header h2 {
@@ -583,9 +627,6 @@ body {
     box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
 }
 
-/* ============================================
-   RESPONSIVE
-   ============================================ */
 @media (max-width: 1024px) {
     .login-container {
         grid-template-columns: 1fr;
@@ -638,6 +679,14 @@ body {
 }
 
 @media (max-width: 480px) {
+    .captcha-frame {
+        grid-template-columns: 1fr 46px;
+    }
+
+    .captcha-image {
+        height: 56px;
+    }
+
     .modal-header {
         padding: 2rem 1.5rem 1rem;
     }

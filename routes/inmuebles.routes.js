@@ -15,10 +15,10 @@ const { body, param } = require('express-validator');
 
 const createInmuebleValidation = [
     body('tipo_vivienda_id').isInt().withMessage('Tipo de vivienda inválido'),
-    body('medidas').isFloat({ min: 0 }).withMessage('Medidas inválidas'),
+    body('medidas').isFloat({ gt: 0 }).withMessage('Las medidas deben ser mayores a 0'),
     body('tipo_transaccion_id').isInt().withMessage('Tipo de transacción inválido'),
     body('estado_id').isInt().withMessage('Estado inválido'),
-    body('precio').isFloat({ min: 0 }).withMessage('Precio inválido'),
+    body('precio').isFloat({ gt: 0 }).withMessage('El precio debe ser mayor a 0'),
     body('condicion_id').isInt().withMessage('Condición inválida'),
     body('direccion').notEmpty().withMessage('Dirección requerida'),
     body('ciudad_id').isInt().withMessage('Ciudad inválida'),
@@ -148,7 +148,7 @@ router.post(
         body('cliente_id').isInt().withMessage('Cliente inválido'),
         body('estado_id').isInt().withMessage('Estado inválido'),
         body('fecha_transaccion').isDate().withMessage('Fecha inválida'),
-        body('valor_transaccion').isFloat({ min: 0 }).withMessage('Valor inválido')
+        body('valor_transaccion').isFloat({ gt: 0 }).withMessage('El valor de la transaccion debe ser mayor a 0')
     ],
     inmueblesController.registrarTransaccion
 );

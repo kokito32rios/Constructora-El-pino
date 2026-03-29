@@ -1,10 +1,11 @@
 // ============================================
-// RUTAS DE AUTENTICACIÓN
+// RUTAS DE AUTENTICACION
 // ============================================
 
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
+const authMiddleware = require('../middleware/auth.middleware');
 const { body } = require('express-validator');
 
 // ============================================
@@ -13,19 +14,23 @@ const { body } = require('express-validator');
 
 const loginValidation = [
     body('cedula')
-        .notEmpty().withMessage('La cédula es requerida')
+        .notEmpty().withMessage('Completa todos los campos')
         .trim()
-        .isLength({ min: 6, max: 20 }).withMessage('La cédula debe tener entre 6 y 20 caracteres'),
+        .isLength({ min: 6, max: 20 }).withMessage('La cedula no es valida'),
     body('password')
-        .notEmpty().withMessage('La contraseña es requerida')
-        .isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres')
+        .notEmpty().withMessage('Completa todos los campos')
+        .isLength({ min: 6 }).withMessage('La contrasena debe tener al menos 6 caracteres'),
+    body('captchaId')
+        .notEmpty().withMessage('Completa el captcha'),
+    body('captchaAnswer')
+        .notEmpty().withMessage('Resuelve el captcha')
 ];
 
 const registerValidation = [
     body('cedula')
-        .notEmpty().withMessage('La cédula es requerida')
+        .notEmpty().withMessage('La cedula es requerida')
         .trim()
-        .isLength({ min: 6, max: 20 }).withMessage('La cédula debe tener entre 6 y 20 caracteres'),
+        .isLength({ min: 6, max: 20 }).withMessage('La cedula debe tener entre 6 y 20 caracteres'),
     body('nombre')
         .notEmpty().withMessage('El nombre es requerido')
         .trim()
@@ -33,42 +38,33 @@ const registerValidation = [
     body('email')
         .notEmpty().withMessage('El email es requerido')
         .trim()
-        .isEmail().withMessage('Debe ser un email válido')
+        .isEmail().withMessage('Debe ser un email valido')
         .normalizeEmail(),
     body('password')
-        .notEmpty().withMessage('La contraseña es requerida')
-        .isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres'),
+        .notEmpty().withMessage('La contrasena es requerida')
+        .isLength({ min: 6 }).withMessage('La contrasena debe tener al menos 6 caracteres'),
     body('rol_id')
         .optional()
-        .isInt({ min: 1 }).withMessage('El rol debe ser un número válido')
+        .isInt({ min: 1 }).withMessage('El rol debe ser un numero valido')
+];
+
+const changePasswordValidation = [
+    body('passwordActual')
+        .notEmpty().withMessage('La contrasena actual es requerida'),
+    body('passwordNueva')
+        .notEmpty().withMessage('La nueva contrasena es requerida')
+        .isLength({ min: 6 }).withMessage('La nueva contrasena debe tener al menos 6 caracteres')
 ];
 
 // ============================================
 // RUTAS
 // ============================================
 
-/**
- * POST /api/auth/login
- * Iniciar sesión
- */
+router.get('/captcha', authController.getCaptcha);
 router.post('/login', loginValidation, authController.login);
-
-/**
- * POST /api/auth/register
- * Registrar nuevo usuario
- */
 router.post('/register', registerValidation, authController.register);
-
-/**
- * POST /api/auth/verify
- * Verificar token JWT
- */
 router.post('/verify', authController.verifyToken);
-
-/**
- * POST /api/auth/change-password
- * Cambiar contraseña (requiere autenticación)
- */
-router.post('/change-password', authController.changePassword);
+router.post('/logout', authController.logout);
+router.post('/change-password', authMiddleware, changePasswordValidation, authController.changePassword);
 
 module.exports = router;

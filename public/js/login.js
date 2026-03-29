@@ -1,43 +1,67 @@
-// ============================================
-// LOGIN.JS - PÁGINA DE LOGIN
-// ============================================
-
 const API_URL = 'http://localhost:3000';
 
-// ============================================
-// ELEMENTOS DEL DOM
-// ============================================
 const loginForm = document.getElementById('loginForm');
 const cedulaInput = document.getElementById('cedula');
 const passwordInput = document.getElementById('password');
+const captchaImage = document.getElementById('captchaImage');
+const captchaAnswerInput = document.getElementById('captchaAnswer');
+const captchaIdInput = document.getElementById('captchaId');
+const refreshCaptchaBtn = document.getElementById('refreshCaptcha');
 const togglePasswordBtn = document.getElementById('togglePassword');
 const btnLogin = document.getElementById('btnLogin');
 const btnText = btnLogin.querySelector('.btn-text');
 const btnLoader = btnLogin.querySelector('.btn-loader');
 
-// Modales
 const requestAccountModal = document.getElementById('requestAccountModal');
-const userNotFoundModal = document.getElementById('userNotFoundModal');
 const requestAccountLink = document.getElementById('requestAccountLink');
 const forgotPasswordLink = document.getElementById('forgotPasswordLink');
-
-// Botones de cierre
 const closeRequestModal = document.getElementById('closeRequestModal');
 const acceptRequestModal = document.getElementById('acceptRequestModal');
-const closeUserNotFoundModal = document.getElementById('closeUserNotFoundModal');
-const acceptUserNotFoundModal = document.getElementById('acceptUserNotFoundModal');
 
-// ============================================
-// TOGGLE PASSWORD VISIBILITY
-// ============================================
+async function loadCaptcha() {
+    if (!captchaImage || !captchaIdInput) {
+        return;
+    }
+
+    captchaImage.removeAttribute('src');
+    captchaIdInput.value = '';
+    if (captchaAnswerInput) {
+        captchaAnswerInput.value = '';
+    }
+    if (refreshCaptchaBtn) {
+        refreshCaptchaBtn.disabled = true;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/api/auth/captcha`, {
+            credentials: 'same-origin'
+        });
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.message || 'No se pudo cargar el captcha');
+        }
+
+        captchaImage.src = data.data.imageData;
+        captchaIdInput.value = data.data.captchaId;
+    } catch (error) {
+        console.error('Error al cargar captcha:', error);
+        showAlert('No se pudo cargar el captcha. Intenta de nuevo.', 'error');
+    } finally {
+        if (refreshCaptchaBtn) {
+            refreshCaptchaBtn.disabled = false;
+        }
+    }
+}
+
 if (togglePasswordBtn) {
     togglePasswordBtn.addEventListener('click', () => {
         const type = passwordInput.type === 'password' ? 'text' : 'password';
         passwordInput.type = type;
-        
+
         const eyeOpen = togglePasswordBtn.querySelector('.eye-open');
         const eyeClosed = togglePasswordBtn.querySelector('.eye-closed');
-        
+
         if (type === 'text') {
             eyeOpen.style.display = 'none';
             eyeClosed.style.display = 'block';
@@ -48,9 +72,12 @@ if (togglePasswordBtn) {
     });
 }
 
-// ============================================
-// ABRIR MODAL SOLICITAR CUENTA
-// ============================================
+if (refreshCaptchaBtn) {
+    refreshCaptchaBtn.addEventListener('click', () => {
+        loadCaptcha();
+    });
+}
+
 if (requestAccountLink) {
     requestAccountLink.addEventListener('click', (e) => {
         e.preventDefault();
@@ -65,42 +92,24 @@ if (forgotPasswordLink) {
     });
 }
 
-// ============================================
-// CERRAR MODALES
-// ============================================
-const closeModals = [
-    { btn: closeRequestModal, modal: requestAccountModal },
-    { btn: acceptRequestModal, modal: requestAccountModal },
-    { btn: closeUserNotFoundModal, modal: userNotFoundModal },
-    { btn: acceptUserNotFoundModal, modal: userNotFoundModal }
-];
-
-closeModals.forEach(({ btn, modal }) => {
-    if (btn) {
-        btn.addEventListener('click', () => closeModal(modal));
+[closeRequestModal, acceptRequestModal].forEach((button) => {
+    if (button) {
+        button.addEventListener('click', () => closeModal(requestAccountModal));
     }
 });
 
-// Cerrar al hacer clic fuera
-[requestAccountModal, userNotFoundModal].forEach(modal => {
-    modal?.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeModal(modal);
-        }
-    });
+requestAccountModal?.addEventListener('click', (e) => {
+    if (e.target === requestAccountModal) {
+        closeModal(requestAccountModal);
+    }
 });
 
-// Cerrar con ESC
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         closeModal(requestAccountModal);
-        closeModal(userNotFoundModal);
     }
 });
 
-// ============================================
-// FUNCIONES DE MODAL
-// ============================================
 function openModal(modal) {
     if (modal) {
         modal.classList.add('active');
@@ -115,72 +124,81 @@ function closeModal(modal) {
     }
 }
 
-// ============================================
-// MANEJO DEL FORMULARIO DE LOGIN
-// ============================================
+function getLoginValidationMessage(cedula, password, captchaAnswer, captchaId) {
+    if (!cedula || !password) {
+        return 'Completa todos los campos';
+    }
+
+    if (cedula.length < 6 || cedula.length > 20) {
+        return 'La c�dula no es v�lida';
+    }
+
+    if (password.length < 6) {
+        return 'La contrase�a debe tener al menos 6 caracteres';
+    }
+
+    if (!captchaId) {
+        return 'No se pudo cargar el captcha';
+    }
+
+    if (!captchaAnswer) {
+        return 'Ingresa el codigo de seguridad';
+    }
+
+    return null;
+}
+
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const cedula = cedulaInput.value.trim();
         const password = passwordInput.value;
-        
-        // Validaciones
-        if (!cedula || !password) {
-            showAlert('Por favor completa todos los campos', 'error');
+        const captchaAnswer = captchaAnswerInput ? captchaAnswerInput.value.trim() : '';
+        const captchaId = captchaIdInput ? captchaIdInput.value : '';
+        const validationMessage = getLoginValidationMessage(cedula, password, captchaAnswer, captchaId);
+
+        if (validationMessage) {
+            showAlert(validationMessage, 'error');
             return;
         }
-        
-        // Mostrar loader
+
         btnLogin.disabled = true;
         btnText.style.display = 'none';
         btnLoader.style.display = 'block';
-        
+
         try {
             const response = await fetch(`${API_URL}/api/auth/login`, {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ cedula, password })
+                body: JSON.stringify({ cedula, password, captchaId, captchaAnswer })
             });
-            
+
             const data = await response.json();
-            
+
             if (data.success) {
-                // Guardar token
-                localStorage.setItem('token', data.data.token);
                 localStorage.setItem('usuario', JSON.stringify(data.data.usuario));
-                
-                // Mostrar mensaje de éxito
-                showAlert('¡Inicio de sesión exitoso!', 'success');
-                
-                // Redireccionar al dashboard
+                showAlert('Inicio de sesion exitoso', 'success');
+
                 setTimeout(() => {
-                    window.location.href = '/views/dashboard.html';
+                    window.location.href = '/dashboard.html';
                 }, 1000);
-                
-            } else {
-                // Verificar si es usuario no encontrado
-                if (data.errorCode === 'USER_NOT_FOUND') {
-                    openModal(userNotFoundModal);
-                } else if (data.errorCode === 'INVALID_PASSWORD') {
-                        showAlert('Contraseña incorrecta', 'error');
-                } else {
-                    showAlert(data.message || 'Error al iniciar sesión', 'error');
-                }
-                
-                // Restaurar botón
-                btnLogin.disabled = false;
-                btnText.style.display = 'block';
-                btnLoader.style.display = 'none';
+                return;
             }
-            
+
+            const serverValidationMessage = Array.isArray(data.errors) && data.errors.length > 0
+                ? data.errors[0].msg
+                : null;
+
+            showAlert(serverValidationMessage || data.message || 'Credenciales inv�lidas', 'error');
+            await loadCaptcha();
         } catch (error) {
             console.error('Error en login:', error);
-            showAlert('Error de conexión. Por favor, intenta nuevamente.', 'error');
-            
-            // Restaurar botón
+            showAlert('Error de conexion. Por favor, intenta nuevamente.', 'error');
+        } finally {
             btnLogin.disabled = false;
             btnText.style.display = 'block';
             btnLoader.style.display = 'none';
@@ -188,31 +206,22 @@ if (loginForm) {
     });
 }
 
-// ============================================
-// SISTEMA DE ALERTAS
-// ============================================
 function showAlert(message, type = 'info') {
-    // Remover alertas anteriores
     const existingAlert = document.querySelector('.custom-alert');
     if (existingAlert) {
         existingAlert.remove();
     }
-    
+
     const alert = document.createElement('div');
     alert.className = `custom-alert alert-${type}`;
-    
-    const icon = type === 'success' 
+
+    const icon = type === 'success'
         ? '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
         : '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
-    
-    alert.innerHTML = `
-        ${icon}
-        <span>${message}</span>
-    `;
-    
+
+    alert.innerHTML = `${icon}<span>${message}</span>`;
     document.body.appendChild(alert);
-    
-    // Agregar estilos dinámicamente si no existen
+
     if (!document.getElementById('alert-styles')) {
         const style = document.createElement('style');
         style.id = 'alert-styles';
@@ -231,17 +240,17 @@ function showAlert(message, type = 'info') {
                 animation: slideInRight 0.3s ease;
                 box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             }
-            
+
             .alert-success {
                 background: #16a34a;
                 color: white;
             }
-            
+
             .alert-error {
                 background: #dc2626;
                 color: white;
             }
-            
+
             @keyframes slideInRight {
                 from {
                     transform: translateX(400px);
@@ -252,7 +261,7 @@ function showAlert(message, type = 'info') {
                     opacity: 1;
                 }
             }
-            
+
             @media (max-width: 768px) {
                 .custom-alert {
                     right: 1rem;
@@ -263,48 +272,37 @@ function showAlert(message, type = 'info') {
         `;
         document.head.appendChild(style);
     }
-    
-    // Auto-remover después de 4 segundos
+
     setTimeout(() => {
         alert.style.animation = 'slideInRight 0.3s ease reverse';
         setTimeout(() => alert.remove(), 300);
     }, 4000);
 }
 
-// ============================================
-// VERIFICAR SI YA ESTÁ LOGUEADO
-// ============================================
-const token = localStorage.getItem('token');
-if (token) {
-    // Verificar si el token es válido
-    fetch(`${API_URL}/auth/verify`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ token })
-    })
-    .then(res => res.json())
-    .then(data => {
+fetch(`${API_URL}/api/auth/verify`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+        'Content-Type': 'application/json'
+    }
+})
+    .then((res) => res.json())
+    .then((data) => {
         if (data.success) {
-            // Token válido, redireccionar al dashboard
-            window.location.href = '/views/dashboard.html';
+            localStorage.setItem('usuario', JSON.stringify(data.data.usuario));
+            window.location.href = '/dashboard.html';
         } else {
-            // Token inválido, limpiar storage
-            localStorage.removeItem('token');
             localStorage.removeItem('usuario');
         }
     })
-    .catch(err => {
-        console.error('Error al verificar token:', err);
+    .catch((err) => {
+        console.error('Error al verificar sesion:', err);
     });
-}
 
-// ============================================
-// AUTO-FOCUS EN PRIMER CAMPO
-// ============================================
 window.addEventListener('DOMContentLoaded', () => {
     if (cedulaInput) {
         cedulaInput.focus();
     }
+
+    loadCaptcha();
 });

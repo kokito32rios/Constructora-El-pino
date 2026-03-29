@@ -1,14 +1,89 @@
-// ============================================
-// CONTROLADOR DE USUARIOS
-// ============================================
-
 const { validationResult } = require('express-validator');
 const { pool } = require('../config/database');
 const bcrypt = require('bcryptjs');
+const { emitAdminNotification } = require('../config/realtime');
 
-// ============================================
-// OBTENER TODOS LOS USUARIOS
-// ============================================
+async function obtenerUsuarioConRol(cedula) {
+    const [usuarios] = await pool.query(
+        `SELECT u.cedula, u.nombre, u.email, u.rol_id, u.activo, u.created_at, u.updated_at,
+                r.nombre as rol_nombre, r.descripcion as rol_descripcion
+         FROM usuarios u
+         INNER JOIN roles r ON u.rol_id = r.id
+         WHERE u.cedula = ?`,
+        [cedula]
+    );
+
+    return usuarios[0] || null;
+}
+
+exports.createUsuario = async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                errors: errors.array()
+            });
+        }
+
+        const { cedula, nombre, email, password, rol_id, activo = true } = req.body;
+
+        const [existeCedula] = await pool.query(
+            'SELECT cedula FROM usuarios WHERE cedula = ?',
+            [cedula]
+        );
+
+        if (existeCedula.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'La cédula ya está registrada'
+            });
+        }
+
+        const [existeEmail] = await pool.query(
+            'SELECT email FROM usuarios WHERE email = ?',
+            [email]
+        );
+
+        if (existeEmail.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'El email ya está en uso'
+            });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 12);
+
+        await pool.query(
+            `INSERT INTO usuarios (cedula, nombre, email, password, rol_id, activo)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [cedula, nombre, email, passwordHash, rol_id, activo ? 1 : 0]
+        );
+
+        const nuevoUsuario = await obtenerUsuarioConRol(cedula);
+
+        res.status(201).json({
+            success: true,
+            message: 'Usuario creado exitosamente',
+            data: nuevoUsuario
+        });
+
+        emitAdminNotification({
+            type: 'usuario',
+            action: 'created',
+            title: 'Usuario creado',
+            message: `${req.user?.nombre || 'Un administrador'} creó el usuario ${nuevoUsuario.nombre} (${nuevoUsuario.cedula}).`,
+            resourceId: nuevoUsuario.cedula
+        });
+    } catch (error) {
+        console.error('Error en createUsuario:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al crear usuario'
+        });
+    }
+};
+
 exports.getUsuarios = async (req, res) => {
     try {
         const { page = 1, limit = 20, activo, rol_id } = req.query;
@@ -22,25 +97,23 @@ exports.getUsuarios = async (req, res) => {
         `;
         const params = [];
 
-        if (activo !== undefined) {
+        if (activo !== undefined && activo !== '') {
             query += ' AND u.activo = ?';
-            params.push(activo);
+            params.push(Number(activo));
         }
 
         if (rol_id) {
             query += ' AND u.rol_id = ?';
-            params.push(rol_id);
+            params.push(Number(rol_id));
         }
 
-        // Contar total
         const countQuery = query.replace(/SELECT .+ FROM/, 'SELECT COUNT(*) as total FROM');
         const [countResult] = await pool.query(countQuery, params);
         const total = countResult[0].total;
 
-        // PaginaciÃ³n
-        const offset = (page - 1) * limit;
+        const offset = (Number(page) - 1) * Number(limit);
         query += ' ORDER BY u.nombre ASC LIMIT ? OFFSET ?';
-        params.push(parseInt(limit), parseInt(offset));
+        params.push(Number(limit), Number(offset));
 
         const [usuarios] = await pool.query(query, params);
 
@@ -49,39 +122,26 @@ exports.getUsuarios = async (req, res) => {
             data: usuarios,
             pagination: {
                 total,
-                page: parseInt(page),
-                limit: parseInt(limit),
-                totalPages: Math.ceil(total / limit)
+                page: Number(page),
+                limit: Number(limit),
+                totalPages: Math.ceil(total / Number(limit))
             }
         });
-
     } catch (error) {
         console.error('Error en getUsuarios:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener usuarios',
-            error: error.message
+            message: 'Error al obtener usuarios'
         });
     }
 };
 
-// ============================================
-// OBTENER USUARIO POR CÃ‰DULA
-// ============================================
 exports.getUsuarioByCedula = async (req, res) => {
     try {
         const { cedula } = req.params;
+        const usuario = await obtenerUsuarioConRol(cedula);
 
-        const [usuarios] = await pool.query(
-            `SELECT u.cedula, u.nombre, u.email, u.rol_id, u.activo, u.created_at, u.updated_at,
-                    r.nombre as rol_nombre, r.descripcion as rol_descripcion
-             FROM usuarios u
-             INNER JOIN roles r ON u.rol_id = r.id
-             WHERE u.cedula = ?`,
-            [cedula]
-        );
-
-        if (usuarios.length === 0) {
+        if (!usuario) {
             return res.status(404).json({
                 success: false,
                 message: 'Usuario no encontrado'
@@ -90,22 +150,17 @@ exports.getUsuarioByCedula = async (req, res) => {
 
         res.json({
             success: true,
-            data: usuarios[0]
+            data: usuario
         });
-
     } catch (error) {
         console.error('Error en getUsuarioByCedula:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener usuario',
-            error: error.message
+            message: 'Error al obtener usuario'
         });
     }
 };
 
-// ============================================
-// ACTUALIZAR USUARIO
-// ============================================
 exports.updateUsuario = async (req, res) => {
     try {
         const errors = validationResult(req);
@@ -117,32 +172,37 @@ exports.updateUsuario = async (req, res) => {
         }
 
         const { cedula } = req.params;
-        const { nombre, email, rol_id, activo } = req.body;
+        const { nombre, email, rol_id, activo, password } = req.body;
 
-        // Verificar que existe
-        const [existe] = await pool.query('SELECT cedula FROM usuarios WHERE cedula = ?', [cedula]);
-        if (existe.length === 0) {
+        const usuarioActual = await obtenerUsuarioConRol(cedula);
+        if (!usuarioActual) {
             return res.status(404).json({
                 success: false,
                 message: 'Usuario no encontrado'
             });
         }
 
-        // Verificar si el email ya estÃ¡ en uso
         if (email) {
             const [emailExiste] = await pool.query(
                 'SELECT cedula FROM usuarios WHERE email = ? AND cedula != ?',
                 [email, cedula]
             );
+
             if (emailExiste.length > 0) {
                 return res.status(400).json({
                     success: false,
-                    message: 'El email ya estÃ¡ en uso'
+                    message: 'El email ya está en uso'
                 });
             }
         }
 
-        // Construir query dinÃ¡mica
+        if (req.user && req.user.cedula === cedula && activo === false) {
+            return res.status(400).json({
+                success: false,
+                message: 'No puedes desactivar tu propio usuario'
+            });
+        }
+
         const updates = [];
         const params = [];
 
@@ -156,14 +216,19 @@ exports.updateUsuario = async (req, res) => {
         }
         if (rol_id) {
             updates.push('rol_id = ?');
-            params.push(rol_id);
+            params.push(Number(rol_id));
         }
         if (activo !== undefined) {
             updates.push('activo = ?');
-            params.push(activo);
+            params.push(activo ? 1 : 0);
+        }
+        if (password) {
+            const passwordHash = await bcrypt.hash(password, 12);
+            updates.push('password = ?');
+            params.push(passwordHash);
         }
 
-        if (updates.length === 0) {
+        if (!updates.length) {
             return res.status(400).json({
                 success: false,
                 message: 'No hay campos para actualizar'
@@ -176,39 +241,34 @@ exports.updateUsuario = async (req, res) => {
             params
         );
 
-        // Obtener usuario actualizado
-        const [usuarioActualizado] = await pool.query(
-            `SELECT u.cedula, u.nombre, u.email, u.rol_id, u.activo, r.nombre as rol_nombre
-             FROM usuarios u
-             INNER JOIN roles r ON u.rol_id = r.id
-             WHERE u.cedula = ?`,
-            [cedula]
-        );
+        const usuarioActualizado = await obtenerUsuarioConRol(cedula);
 
         res.json({
             success: true,
             message: 'Usuario actualizado exitosamente',
-            data: usuarioActualizado[0]
+            data: usuarioActualizado
         });
 
+        emitAdminNotification({
+            type: 'usuario',
+            action: 'updated',
+            title: 'Usuario actualizado',
+            message: `${req.user?.nombre || 'Un administrador'} actualizó el usuario ${usuarioActualizado.nombre} (${usuarioActualizado.cedula}).`,
+            resourceId: usuarioActualizado.cedula
+        });
     } catch (error) {
         console.error('Error en updateUsuario:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al actualizar usuario',
-            error: error.message
+            message: 'Error al actualizar usuario'
         });
     }
 };
 
-// ============================================
-// ELIMINAR (DESACTIVAR) USUARIO
-// ============================================
 exports.deleteUsuario = async (req, res) => {
     try {
         const { cedula } = req.params;
 
-        // No permitir eliminar el propio usuario
         if (req.user && req.user.cedula === cedula) {
             return res.status(400).json({
                 success: false,
@@ -216,8 +276,20 @@ exports.deleteUsuario = async (req, res) => {
             });
         }
 
+        const [inmueblesAsociados] = await pool.query(
+            'SELECT COUNT(*) as total FROM inmuebles WHERE cedula_usuario = ?',
+            [cedula]
+        );
+
+        if (inmueblesAsociados[0].total > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No se puede eliminar el usuario porque tiene inmuebles asociados'
+            });
+        }
+
         const [resultado] = await pool.query(
-            'UPDATE usuarios SET activo = 0 WHERE cedula = ?',
+            'DELETE FROM usuarios WHERE cedula = ?',
             [cedula]
         );
 
@@ -230,27 +302,36 @@ exports.deleteUsuario = async (req, res) => {
 
         res.json({
             success: true,
-            message: 'Usuario desactivado exitosamente'
+            message: 'Usuario eliminado exitosamente'
         });
 
+        emitAdminNotification({
+            type: 'usuario',
+            action: 'deleted',
+            title: 'Usuario eliminado',
+            message: `${req.user?.nombre || 'Un administrador'} eliminó el usuario ${cedula}.`,
+            resourceId: cedula
+        });
     } catch (error) {
         console.error('Error en deleteUsuario:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al eliminar usuario',
-            error: error.message
+            message: 'Error al eliminar usuario'
         });
     }
 };
 
-// ============================================
-// ACTIVAR/DESACTIVAR USUARIO
-// ============================================
 exports.toggleActivo = async (req, res) => {
     try {
         const { cedula } = req.params;
 
-        // Obtener estado actual
+        if (req.user && req.user.cedula === cedula) {
+            return res.status(400).json({
+                success: false,
+                message: 'No puedes cambiar el estado de tu propio usuario'
+            });
+        }
+
         const [usuario] = await pool.query(
             'SELECT activo FROM usuarios WHERE cedula = ?',
             [cedula]
@@ -276,19 +357,22 @@ exports.toggleActivo = async (req, res) => {
             data: { activo: nuevoEstado }
         });
 
+        emitAdminNotification({
+            type: 'usuario',
+            action: nuevoEstado ? 'activated' : 'deactivated',
+            title: nuevoEstado ? 'Usuario activado' : 'Usuario desactivado',
+            message: `${req.user?.nombre || 'Un administrador'} ${nuevoEstado ? 'activó' : 'desactivó'} el usuario ${cedula}.`,
+            resourceId: cedula
+        });
     } catch (error) {
         console.error('Error en toggleActivo:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al cambiar estado del usuario',
-            error: error.message
+            message: 'Error al cambiar estado del usuario'
         });
     }
 };
 
-// ============================================
-// OBTENER INMUEBLES DE UN USUARIO
-// ============================================
 exports.getInmueblesUsuario = async (req, res) => {
     try {
         const { cedula } = req.params;
@@ -314,13 +398,11 @@ exports.getInmueblesUsuario = async (req, res) => {
             success: true,
             data: inmuebles
         });
-
     } catch (error) {
         console.error('Error en getInmueblesUsuario:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener inmuebles del usuario',
-            error: error.message
+            message: 'Error al obtener inmuebles del usuario'
         });
     }
 };

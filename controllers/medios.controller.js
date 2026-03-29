@@ -40,8 +40,7 @@ exports.getMedioById = async (req, res) => {
         console.error('Error en getMedioById:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al obtener medio',
-            error: error.message
+            message: 'Error al obtener medio'
         });
     }
 };
@@ -111,8 +110,7 @@ exports.updateMedio = async (req, res) => {
         console.error('Error en updateMedio:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al actualizar medio',
-            error: error.message
+            message: 'Error al actualizar medio'
         });
     }
 };
@@ -163,8 +161,7 @@ exports.deleteMedio = async (req, res) => {
         console.error('Error en deleteMedio:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al eliminar medio',
-            error: error.message
+            message: 'Error al eliminar medio'
         });
     }
 };

@@ -1,79 +1,71 @@
-// ============================================
-// RUTAS DE USUARIOS
-// ============================================
-
 const express = require('express');
-const router = express.Router();
+const { body, param } = require('express-validator');
 const usuariosController = require('../controllers/usuarios.controller');
 const authMiddleware = require('../middleware/auth.middleware');
-const { body, param } = require('express-validator');
+const { requireAdmin } = require('../middleware/auth.middleware');
 
-// ============================================
-// VALIDACIONES
-// ============================================
+const router = express.Router();
+
+const cedulaParamValidation = [
+    param('cedula')
+        .notEmpty().withMessage('La cédula es requerida')
+        .trim()
+        .isLength({ min: 6, max: 20 }).withMessage('La cédula debe tener entre 6 y 20 caracteres')
+];
+
+const createUsuarioValidation = [
+    body('cedula')
+        .notEmpty().withMessage('La cédula es requerida')
+        .trim()
+        .isLength({ min: 6, max: 20 }).withMessage('La cédula debe tener entre 6 y 20 caracteres'),
+    body('nombre')
+        .notEmpty().withMessage('El nombre es requerido')
+        .trim()
+        .isLength({ min: 3, max: 100 }).withMessage('El nombre debe tener entre 3 y 100 caracteres'),
+    body('email')
+        .notEmpty().withMessage('El email es requerido')
+        .trim()
+        .isEmail().withMessage('El email no es válido')
+        .normalizeEmail(),
+    body('password')
+        .notEmpty().withMessage('La contraseña es requerida')
+        .isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres'),
+    body('rol_id')
+        .notEmpty().withMessage('El rol es requerido')
+        .isInt({ min: 1 }).withMessage('El rol no es válido'),
+    body('activo')
+        .optional()
+        .isBoolean().withMessage('El estado debe ser booleano')
+];
 
 const updateUsuarioValidation = [
-    param('cedula').notEmpty().withMessage('CÃ©dula requerida'),
+    ...cedulaParamValidation,
     body('nombre')
         .optional()
         .trim()
-        .isLength({ min: 3, max: 100 }).withMessage('Nombre debe tener entre 3 y 100 caracteres'),
+        .isLength({ min: 3, max: 100 }).withMessage('El nombre debe tener entre 3 y 100 caracteres'),
     body('email')
         .optional()
         .trim()
-        .isEmail().withMessage('Email invÃ¡lido')
+        .isEmail().withMessage('El email no es válido')
         .normalizeEmail(),
+    body('password')
+        .optional({ values: 'falsy' })
+        .isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres'),
     body('rol_id')
         .optional()
-        .isInt({ min: 1 }).withMessage('Rol invÃ¡lido'),
+        .isInt({ min: 1 }).withMessage('El rol no es válido'),
     body('activo')
         .optional()
-        .isBoolean().withMessage('Activo debe ser booleano')
+        .isBoolean().withMessage('El estado debe ser booleano')
 ];
 
-const cedulaValidation = [
-    param('cedula').notEmpty().withMessage('CÃ©dula requerida')
-];
-
-// ============================================
-// RUTAS PROTEGIDAS (REQUIEREN AUTENTICACIÃ“N)
-// ============================================
-
-/**
- * GET /api/usuarios
- * Obtener todos los usuarios
- * Query params: page, limit, activo, rol_id
- */
-router.get('/', authMiddleware, usuariosController.getUsuarios);
-
-/**
- * GET /api/usuarios/:cedula
- * Obtener detalle de un usuario especÃ­fico
- */
-router.get('/:cedula', authMiddleware, cedulaValidation, usuariosController.getUsuarioByCedula);
-
-/**
- * PUT /api/usuarios/:cedula
- * Actualizar usuario existente
- */
-router.put('/:cedula', authMiddleware, updateUsuarioValidation, usuariosController.updateUsuario);
-
-/**
- * DELETE /api/usuarios/:cedula
- * Eliminar (desactivar) usuario
- */
-router.delete('/:cedula', authMiddleware, cedulaValidation, usuariosController.deleteUsuario);
-
-/**
- * PUT /api/usuarios/:cedula/toggle-activo
- * Activar/Desactivar usuario
- */
-router.put('/:cedula/toggle-activo', authMiddleware, cedulaValidation, usuariosController.toggleActivo);
-
-/**
- * GET /api/usuarios/:cedula/inmuebles
- * Obtener inmuebles registrados por un usuario
- */
-router.get('/:cedula/inmuebles', authMiddleware, cedulaValidation, usuariosController.getInmueblesUsuario);
+router.get('/', authMiddleware, requireAdmin, usuariosController.getUsuarios);
+router.post('/', authMiddleware, requireAdmin, createUsuarioValidation, usuariosController.createUsuario);
+router.get('/:cedula', authMiddleware, requireAdmin, cedulaParamValidation, usuariosController.getUsuarioByCedula);
+router.put('/:cedula', authMiddleware, requireAdmin, updateUsuarioValidation, usuariosController.updateUsuario);
+router.delete('/:cedula', authMiddleware, requireAdmin, cedulaParamValidation, usuariosController.deleteUsuario);
+router.put('/:cedula/toggle-activo', authMiddleware, requireAdmin, cedulaParamValidation, usuariosController.toggleActivo);
+router.get('/:cedula/inmuebles', authMiddleware, requireAdmin, cedulaParamValidation, usuariosController.getInmueblesUsuario);
 
 module.exports = router;
