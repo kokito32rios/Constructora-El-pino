@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000';
+const API_URL = '';
 
 const loginForm = document.getElementById('loginForm');
 const cedulaInput = document.getElementById('cedula');
@@ -306,3 +306,4 @@ window.addEventListener('DOMContentLoaded', () => {
 
     loadCaptcha();
 });
+

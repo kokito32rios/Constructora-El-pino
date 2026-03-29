@@ -1,4 +1,4 @@
-const CLIENTES_API_URL = 'http://localhost:3000/api/clientes';
+const CLIENTES_API_URL = '/api/clientes';
 
 function authFetchClientes(url, options = {}) {
     if (typeof authFetch === 'function') {
@@ -480,3 +480,4 @@ window.addEventListener('realtime:cliente-changed', () => {
         cargarClientes(paginaClientesActual);
     }
 });
+

@@ -1,6 +1,6 @@
-const API_URL_DASHBOARD = 'http://localhost:3000/api';
-const API_URL_AUTH = 'http://localhost:3000/api/auth';
-const API_URL_NOTIFICATIONS = 'http://localhost:3000/api/notificaciones';
+const API_URL_DASHBOARD = '/api';
+const API_URL_AUTH = '/api/auth';
+const API_URL_NOTIFICATIONS = '/api/notificaciones';
 
 let usuario = JSON.parse(localStorage.getItem('usuario') || 'null');
 
@@ -664,6 +664,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   cargarInmueblesRecientes();
   cargarClientesRecientes();
 });
+
 
 
 

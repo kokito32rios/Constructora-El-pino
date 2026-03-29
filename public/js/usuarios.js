@@ -1,5 +1,5 @@
-const USUARIOS_API_URL = 'http://localhost:3000/api/usuarios';
-const CATALOGOS_USUARIOS_API_URL = 'http://localhost:3000/api/catalogos/all';
+const USUARIOS_API_URL = '/api/usuarios';
+const CATALOGOS_USUARIOS_API_URL = '/api/catalogos/all';
 
 function authFetchUsuarios(url, options = {}) {
     if (typeof authFetch === 'function') {
@@ -578,6 +578,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await cargarRolesUsuarios();
     await cargarUsuarios();
 });
+
 
 
 

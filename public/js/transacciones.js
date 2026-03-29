@@ -1,5 +1,5 @@
-const TRANSACCIONES_API_URL = 'http://localhost:3000/api/transacciones';
-const CATALOGOS_API_URL = 'http://localhost:3000/api/catalogos/all';
+const TRANSACCIONES_API_URL = '/api/transacciones';
+const CATALOGOS_API_URL = '/api/catalogos/all';
 
 function authFetchTransacciones(url, options = {}) {
     if (typeof authFetch === 'function') {
@@ -294,3 +294,4 @@ window.addEventListener('realtime:transaccion-changed', () => {
         cargarTransacciones(paginaTransaccionesActual);
     }
 });
+

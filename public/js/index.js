@@ -2,7 +2,7 @@
 // INDEX.JS - PÁGINA PRINCIPAL
 // ============================================
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = '/api';
 
 // ============================================
 // MOBILE MENU TOGGLE
@@ -379,3 +379,4 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarCatalogos();
     cargarPropiedadesDestacadas();
 });
+

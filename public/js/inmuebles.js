@@ -2,7 +2,7 @@
 // INMUEBLES.JS - GESTIÓN DE INMUEBLES
 // ============================================
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = '/api';
 function authFetch(url, options = {}) {
     return fetch(url, {
         ...options,
@@ -931,6 +931,7 @@ document.addEventListener('mouseout', e => {
 // Hacer funciones globales para botones inline
 window.editarInmueble = editarInmueble;
 window.eliminarInmueble = eliminarInmueble;
+
 
 
 

@@ -12,7 +12,7 @@ function buildContentSecurityPolicy() {
             scriptSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
             styleSrcElem: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-            imgSrc: ["'self'", 'data:', 'https://ui-avatars.com', 'https://res.cloudinary.com'],
+            imgSrc: ["'self'", 'data:', 'https://ui-avatars.com', 'https://res.cloudinary.com', 'https://images.unsplash.com'],
             mediaSrc: ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
             connectSrc: ["'self'"],
             fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
